@@ -47,6 +47,12 @@ const defaultNavItems = [
     title: 'Apps',
   },
   {
+    href: '/controls',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Controls',
+  },
+  {
     href: '/files',
     icon: '/assets/icons/nav_files.svg',
     activeIcon: '/assets/icons/nav_files_fill.svg',

@@ -260,7 +260,7 @@ List, inspect, install, and uninstall applications on the device.
 
 ---
 
-### Ticket 9: F8 - Device Controls
+### ✅ Ticket 9: F8 - Device Controls
 
 **Priority:** P1 (High)
 **Milestone:** M2
