@@ -58,6 +58,24 @@ const defaultNavItems = [
     activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Files',
   },
+  {
+    href: '/performance',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Performance',
+  },
+  {
+    href: '/bugreport',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Bugreport',
+  },
+  {
+    href: '/settings',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Settings',
+  },
 ];
 
 export function PageLayout({ children, headerProps: propHeaderProps }: PageLayoutProps) {
