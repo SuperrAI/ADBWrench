@@ -68,7 +68,7 @@ export function PageLayout({ children, headerProps: propHeaderProps }: PageLayou
     <>
 
       <div className="h-full overflow-hidden flex flex-col sm:flex-row sm:gap-4">
-        {isMobile ? <MobileNav avatarColor={avatarColor} /> : <div
+        {isMobile ? <MobileNav /> : <div
           style={{
             padding: '0px 0px 0px 0px',
             width: '72px', // Fixed width for the SideNav container

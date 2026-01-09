@@ -1,6 +1,5 @@
 import React from 'react';
 import { Tooltip } from '@/design-system';
-import { truncateTextWithInfo } from '@/utils/utils';
 
 interface TruncatedTextProps {
   text: string;
@@ -10,11 +9,13 @@ interface TruncatedTextProps {
   tooltipAlign?: 'start' | 'center' | 'end';
 }
 
-/**
- * TruncatedText component that shows truncated text with ellipsis
- * and displays a tooltip with the full text ONLY when the text is actually truncated.
- * If the text fits within maxLength, no tooltip is shown.
- */
+function truncateTextWithInfo(text: string, maxLength: number) {
+  if (text.length <= maxLength) {
+    return { truncated: text, isTruncated: false };
+  }
+  return { truncated: text.slice(0, maxLength) + '...', isTruncated: true };
+}
+
 export const TruncatedText: React.FC<TruncatedTextProps> = ({
   text,
   maxLength = 18,
@@ -29,14 +30,10 @@ export const TruncatedText: React.FC<TruncatedTextProps> = ({
   }
 
   return (
-    <Tooltip 
-      content={text} 
-      side={tooltipSide} 
-      align={tooltipAlign}
-    >
+    <Tooltip content={text} side={tooltipSide} align={tooltipAlign}>
       <span className={className}>{truncated}</span>
     </Tooltip>
   );
 };
 
-export default TruncatedText; 
+export default TruncatedText;

@@ -1,0 +1,23 @@
+# Next.js
+.next/
+out/
+node_modules/
+
+# Environment
+*.env*.local
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.idea/
+.vscode/settings.json
+.DS_Store
+
+# PWA build artifacts (regenerated on build)
+public/sw.js
+public/workbox-*.js
+
+# TypeScript
+tsconfig.tsbuildinfo

@@ -5,12 +5,30 @@ import { MoreVertical } from 'lucide-react';
 import { Avatar } from '@/components/ui/dicebear-avatar';
 import { Button } from '@/design-system/components/Button';
 import { Textarea } from '@/components/ui/textarea';
-import { Comment } from '@/types/comment';
 import { colors } from '@/design-system/foundations/colors';
 import { spacing } from '@/design-system/foundations/spacing';
 import { textStyles, typography } from '@/design-system/foundations/typography';
 import { EmojiPicker } from '@/design-system/components/emoji-picker';
 import { OptionsMenu } from '@/design-system/components/OptionsMenu';
+
+export interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  lastEditedAt?: string;
+  isEdited?: boolean;
+  isPinned?: boolean;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+  };
+  reactions?: Array<{
+    emoji: string;
+    count: number;
+  }>;
+}
 
 export interface CommentsProps {
   comments: Comment[];
