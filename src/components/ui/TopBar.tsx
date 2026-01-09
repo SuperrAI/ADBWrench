@@ -84,7 +84,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ className }: TopBarProps) {
-  const { connectionState, deviceInfo, connect, disconnect } = useDevice();
+  const { connectionState, deviceInfo, error, isWebUsbSupported, connect, disconnect } = useDevice();
 
   const getStatusLabel = (): string => {
     switch (connectionState) {
@@ -144,8 +144,15 @@ export function TopBar({ className }: TopBarProps) {
 
         {/* Unauthorized message */}
         {connectionState === 'unauthorized' && (
-          <span className="text-sm text-amber-600">
+          <span className="text-sm" style={{ color: Amber.A600 }}>
             Please accept the USB debugging prompt on your device
+          </span>
+        )}
+
+        {/* Error message */}
+        {error && connectionState === 'disconnected' && (
+          <span className="text-sm" style={{ color: Red.R500 }}>
+            {error}
           </span>
         )}
       </div>
@@ -158,8 +165,9 @@ export function TopBar({ className }: TopBarProps) {
             size="small"
             icon={<UsbIcon />}
             onClick={connect}
+            disabled={!isWebUsbSupported}
           >
-            Connect Device
+            {isWebUsbSupported ? 'Connect Device' : 'WebUSB Not Supported'}
           </Button>
         )}
 
