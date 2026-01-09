@@ -387,3 +387,251 @@ export async function deleteFile(remotePath: string): Promise<void> {
 
   await shell(`rm -f ${remotePath}`);
 }
+
+/**
+ * File entry from directory listing
+ */
+export interface FileEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  size: number;
+  permissions: string;
+  owner: string;
+  group: string;
+  modifiedDate: string;
+  isSymlink: boolean;
+  linkTarget?: string;
+}
+
+/**
+ * List directory contents
+ */
+export async function listDirectory(path: string): Promise<FileEntry[]> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  // Use ls -la for detailed listing
+  const output = await shell(`ls -la "${path}"`);
+  const lines = output.trim().split('\n');
+  const entries: FileEntry[] = [];
+
+  for (const line of lines) {
+    // Skip total line and empty lines
+    if (line.startsWith('total') || !line.trim()) continue;
+
+    // Parse ls -la output
+    // Format: drwxr-xr-x  2 root root  4096 2024-01-15 10:30 dirname
+    // or:     -rw-r--r--  1 root root  1234 2024-01-15 10:30 filename
+    // symlink: lrwxrwxrwx  1 root root    12 2024-01-15 10:30 link -> target
+    const match = line.match(
+      /^([dlrwxs-]{10})\s+\d+\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})\s+(.+)$/
+    );
+
+    if (match) {
+      const permissions = match[1];
+      const owner = match[2];
+      const group = match[3];
+      const size = parseInt(match[4], 10);
+      const modifiedDate = match[5];
+      let name = match[6];
+      let linkTarget: string | undefined;
+
+      // Handle symlinks
+      const isSymlink = permissions.startsWith('l');
+      if (isSymlink && name.includes(' -> ')) {
+        const parts = name.split(' -> ');
+        name = parts[0];
+        linkTarget = parts[1];
+      }
+
+      // Skip . and ..
+      if (name === '.' || name === '..') continue;
+
+      const isDirectory = permissions.startsWith('d');
+      const fullPath = path.endsWith('/') ? `${path}${name}` : `${path}/${name}`;
+
+      entries.push({
+        name,
+        path: fullPath,
+        isDirectory,
+        size,
+        permissions,
+        owner,
+        group,
+        modifiedDate,
+        isSymlink,
+        linkTarget,
+      });
+    }
+  }
+
+  // Sort: directories first, then by name
+  return entries.sort((a, b) => {
+    if (a.isDirectory && !b.isDirectory) return -1;
+    if (!a.isDirectory && b.isDirectory) return 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Create a directory on the device
+ */
+export async function createDirectory(path: string): Promise<void> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  await shell(`mkdir -p "${path}"`);
+}
+
+/**
+ * Delete a directory on the device (recursive)
+ */
+export async function deleteDirectory(path: string): Promise<void> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  await shell(`rm -rf "${path}"`);
+}
+
+/**
+ * Check if a path exists on the device
+ */
+export async function pathExists(path: string): Promise<boolean> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  try {
+    const output = await shell(`test -e "${path}" && echo "exists" || echo "not found"`);
+    return output.trim() === 'exists';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Push a file to the device with optional progress callback
+ */
+export async function pushFile(
+  remotePath: string,
+  data: Uint8Array,
+  onProgress?: (progress: number) => void
+): Promise<void> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  const sync = await currentAdb.sync();
+  try {
+    // Create a simple readable stream that yields the data in chunks
+    const chunkSize = 64 * 1024; // 64KB chunks
+    let offset = 0;
+    const totalSize = data.length;
+
+    // Create an async iterable that yields chunks
+    const chunks: Uint8Array[] = [];
+    while (offset < totalSize) {
+      chunks.push(data.slice(offset, offset + chunkSize));
+      offset += chunkSize;
+    }
+
+    // Use the write method with a ReadableStream from array
+    const stream = new ReadableStream({
+      start(controller) {
+        let chunkIndex = 0;
+        const totalChunks = chunks.length;
+
+        function pushNext() {
+          if (chunkIndex >= totalChunks) {
+            controller.close();
+            return;
+          }
+
+          controller.enqueue(chunks[chunkIndex]);
+          chunkIndex++;
+
+          if (onProgress) {
+            onProgress(Math.min(100, Math.round((chunkIndex / totalChunks) * 100)));
+          }
+        }
+
+        // Push all chunks immediately
+        while (chunkIndex < totalChunks) {
+          controller.enqueue(chunks[chunkIndex]);
+          chunkIndex++;
+          if (onProgress) {
+            onProgress(Math.min(100, Math.round((chunkIndex / totalChunks) * 100)));
+          }
+        }
+        controller.close();
+      },
+    });
+
+    // The sync.write expects a specific structure - use write with filename and file
+    // Cast to any to bypass strict type checking for library compatibility
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await sync.write({
+      filename: remotePath,
+      file: stream as any,
+    });
+  } finally {
+    await sync.dispose();
+  }
+}
+
+/**
+ * Pull a file with progress callback
+ */
+export async function pullFileWithProgress(
+  remotePath: string,
+  onProgress?: (progress: number, total: number) => void
+): Promise<Uint8Array> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  // First get file size
+  let totalSize = 0;
+  try {
+    const statOutput = await shell(`stat -c %s "${remotePath}"`);
+    totalSize = parseInt(statOutput.trim(), 10) || 0;
+  } catch {
+    // Can't get size, proceed without progress
+  }
+
+  const sync = await currentAdb.sync();
+  try {
+    const chunks: Uint8Array[] = [];
+    const stream = await sync.read(remotePath);
+    const reader = stream.getReader();
+    let downloaded = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      downloaded += value.length;
+
+      if (onProgress && totalSize > 0) {
+        onProgress(downloaded, totalSize);
+      }
+    }
+
+    // Combine chunks
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return result;
+  } finally {
+    await sync.dispose();
+  }
+}
