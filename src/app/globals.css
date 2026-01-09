@@ -110,3 +110,21 @@ button[data-variant="elevated"]:hover:not(:disabled) {
   background-color: #F5F5F5 !important;
   box-shadow: 0px 2px 2px -1px rgba(0,0,0,0.10) !important;
 }
+
+/* Dark mode button hover overrides */
+.dark button[data-variant="primary"]:hover:not(:disabled) {
+  background-color: #525252 !important;
+}
+
+.dark button[data-variant="ghost"]:hover:not(:disabled) {
+  background-color: #262626 !important;
+}
+
+.dark button[data-variant="outline"]:hover:not(:disabled) {
+  background-color: #262626 !important;
+  border-color: #404040 !important;
+}
+
+.dark button[data-variant="elevated"]:hover:not(:disabled) {
+  background-color: #262626 !important;
+}

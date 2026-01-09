@@ -4,6 +4,11 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { Providers } from '@/components/providers/providers';
 import { PWAProvider } from '@/components/pwa';
+import { ThemeProvider } from '@/context/theme-context';
+import { DeviceProvider } from '@/context/device-context';
+import { LayoutProvider } from '@/context/layout-context';
+import { KeyboardShortcutsProvider } from '@/components/ui/KeyboardShortcutsProvider';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'SuperrWrench',
@@ -37,11 +42,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <Providers>
-          <PWAProvider>{children}</PWAProvider>
-        </Providers>
+        <ThemeProvider>
+          <DeviceProvider>
+            <LayoutProvider>
+              <Providers>
+                <PWAProvider>
+                  <KeyboardShortcutsProvider>
+                    <ErrorBoundary>
+                      {children}
+                    </ErrorBoundary>
+                  </KeyboardShortcutsProvider>
+                </PWAProvider>
+              </Providers>
+            </LayoutProvider>
+          </DeviceProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

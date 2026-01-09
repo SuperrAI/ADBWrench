@@ -7,11 +7,34 @@ import { usePathname } from 'next/navigation';
 import { useLayout } from '@/context/layout-context';
 import { Header } from '@/design-system/patterns/Header';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { TopBar } from '@/components/ui/TopBar';
 
 interface PageLayoutProps {
   children: React.ReactNode;
   headerProps?: React.ComponentProps<typeof Header>;
 }
+
+// Default navigation items for the app
+const defaultNavItems = [
+  {
+    href: '/dashboard',
+    icon: '/assets/icons/nav_feed.svg',
+    activeIcon: '/assets/icons/nav_feed_fill.svg',
+    title: 'Dashboard',
+  },
+  {
+    href: '/shell',
+    icon: '/assets/icons/nav_assignment.svg',
+    activeIcon: '/assets/icons/nav_assignment_fill.svg',
+    title: 'Shell',
+  },
+  {
+    href: '/files',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Files',
+  },
+];
 
 export function PageLayout({ children, headerProps: propHeaderProps }: PageLayoutProps) {
   // Use a static orange color for the avatar background
@@ -46,13 +69,11 @@ export function PageLayout({ children, headerProps: propHeaderProps }: PageLayou
   };
 
   // Render the main content with optional header
-  const renderMainContent = () => (
+  const renderMainContent = (showTopBar: boolean = false) => (
     <div
       className="h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out"
-    // style={{
-    //   filter: isSideNavHovered ? 'blur(4px)' : 'none',
-    // }}
     >
+      {showTopBar && <TopBar />}
       {renderHeader()}
       <div className="flex-1 overflow-auto">{children}</div>
     </div>
@@ -75,9 +96,9 @@ export function PageLayout({ children, headerProps: propHeaderProps }: PageLayou
           }}
           className="h-full z-50 flex-shrink-0"
         >
-          <SideNav className="h-full" avatarColor={avatarColor} />
+          <SideNav className="h-full" avatarColor={avatarColor} navItems={defaultNavItems} />
         </div>}
-        <div className="flex-1 overflow-hidden ml-0 md:ml-[72px] h-full md:pt-0">{renderMainContent()}</div>
+        <div className="flex-1 overflow-hidden ml-0 md:ml-[72px] h-full md:pt-0">{renderMainContent(true)}</div>
       </div>
     </>
   );
