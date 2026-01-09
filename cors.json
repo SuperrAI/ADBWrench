@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:3000", "https://app.superr.ai"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin", "Authorization"],
+    "maxAgeSeconds": 3600
+  }
+]

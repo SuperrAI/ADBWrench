@@ -1,0 +1,26 @@
+/* Button hover overrides */
+button[data-variant="primary"]:hover:not(:disabled) {
+  background-color: #404040 !important;
+  border-color: transparent !important;
+}
+
+button[data-variant="secondary"]:hover:not(:disabled) {
+  background-color: #C44600 !important;
+  border-color: #C44600 !important;
+}
+
+button[data-variant="ghost"]:hover:not(:disabled) {
+  background-color: #F5F5F5 !important;
+}
+
+/* Outline button hover state */
+button[data-variant="outline"]:hover:not(:disabled) {
+  background-color: #F5F5F5 !important;
+  border-color: #E5E5E5 !important;
+}
+
+/* Elevated button hover state */
+button[data-variant="elevated"]:hover:not(:disabled) {
+  background-color: #F5F5F5 !important;
+  box-shadow: 0px 2px 2px -1px rgba(0,0,0,0.10) !important;
+} 
