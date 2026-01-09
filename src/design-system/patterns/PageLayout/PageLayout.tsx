@@ -29,6 +29,12 @@ const defaultNavItems = [
     title: 'Shell',
   },
   {
+    href: '/logcat',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Logcat',
+  },
+  {
     href: '/files',
     icon: '/assets/icons/nav_files.svg',
     activeIcon: '/assets/icons/nav_files_fill.svg',
