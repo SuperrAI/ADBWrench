@@ -226,7 +226,7 @@ Capture device screen as image or video for documentation and debugging.
 
 ---
 
-### Ticket 8: F6 - Application Manager
+### ✅ Ticket 8: F6 - Application Manager
 
 **Priority:** P1 (High)
 **Milestone:** M2

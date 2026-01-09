@@ -41,6 +41,12 @@ const defaultNavItems = [
     title: 'Screenshot',
   },
   {
+    href: '/apps',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Apps',
+  },
+  {
     href: '/files',
     icon: '/assets/icons/nav_files.svg',
     activeIcon: '/assets/icons/nav_files_fill.svg',
