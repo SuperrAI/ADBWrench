@@ -35,6 +35,12 @@ const defaultNavItems = [
     title: 'Logcat',
   },
   {
+    href: '/screenshot',
+    icon: '/assets/icons/nav_files.svg',
+    activeIcon: '/assets/icons/nav_files_fill.svg',
+    title: 'Screenshot',
+  },
+  {
     href: '/files',
     icon: '/assets/icons/nav_files.svg',
     activeIcon: '/assets/icons/nav_files_fill.svg',

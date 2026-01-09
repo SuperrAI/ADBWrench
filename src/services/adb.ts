@@ -323,3 +323,67 @@ export function clearLastDevice(): void {
     localStorage.removeItem(LAST_DEVICE_SERIAL_KEY);
   }
 }
+
+/**
+ * Capture a screenshot and return as Uint8Array (PNG data)
+ */
+export async function captureScreenshot(): Promise<Uint8Array> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  // Use screencap -p which outputs PNG to stdout
+  if (currentAdb.subprocess.shellProtocol) {
+    const result = await currentAdb.subprocess.shellProtocol.spawnWait(['screencap', '-p']);
+    return result.stdout;
+  } else {
+    const result = await currentAdb.subprocess.noneProtocol.spawnWait(['screencap', '-p']);
+    return result;
+  }
+}
+
+/**
+ * Pull a file from the device
+ */
+export async function pullFile(remotePath: string): Promise<Uint8Array> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  const sync = await currentAdb.sync();
+  try {
+    const chunks: Uint8Array[] = [];
+    const stream = await sync.read(remotePath);
+    const reader = stream.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    // Combine chunks
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return result;
+  } finally {
+    await sync.dispose();
+  }
+}
+
+/**
+ * Delete a file on the device
+ */
+export async function deleteFile(remotePath: string): Promise<void> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  await shell(`rm -f ${remotePath}`);
+}
