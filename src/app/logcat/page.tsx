@@ -295,10 +295,10 @@ export default function LogcatPage() {
         {/* Logs Virtual List Replacement (Native Scroll) */}
         <div
           ref={logsRef}
-          className="flex-1 overflow-y-auto bg-[#0F0F11] font-mono text-[11px] leading-relaxed scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
+          className="flex-1 overflow-y-auto bg-zinc-950 font-mono text-[11px] leading-relaxed scrollbar-thin scrollbar-thumb-zinc-700 hover:scrollbar-thumb-zinc-600"
         >
           {filteredLogs.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30">
+            <div className="h-full flex flex-col items-center justify-center text-zinc-600">
               <FileText className="w-12 h-12 mb-2 opacity-20" />
               <p>No matching logs</p>
             </div>
@@ -314,15 +314,15 @@ export default function LogcatPage() {
                   )}
                 >
                   {showTimestamp && (
-                    <span className="shrink-0 text-muted-foreground/50 w-24 select-none">{log.timestamp?.split(' ')[1] || '--:--:--'}</span>
+                    <span className="shrink-0 text-zinc-500 w-24 select-none">{log.timestamp?.split(' ')[1] || '--:--:--'}</span>
                   )}
                   <span className={cn("shrink-0 font-bold w-3 text-center select-none", LOG_LEVELS[log.level].color)}>
                     {log.level}
                   </span>
-                  <span className="shrink-0 w-32 truncate text-foreground/80 font-semibold" title={log.tag}>
+                  <span className="shrink-0 w-32 truncate text-zinc-300 font-semibold" title={log.tag}>
                     {log.tag}
                   </span>
-                  <span className="flex-1 text-foreground/70 break-all whitespace-pre-wrap">
+                  <span className="flex-1 text-zinc-400 break-all whitespace-pre-wrap">
                     {log.message}
                   </span>
                 </div>
