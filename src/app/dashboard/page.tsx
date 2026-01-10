@@ -5,98 +5,88 @@ import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useDevice } from '@/context/device-context';
 import { Button } from '@/design-system/components/Button';
-import { InfoPanel, InfoRow, ProgressBar, BatteryIndicator } from '@/components/ui/InfoPanel';
 import {
   fetchAllDeviceInfo,
   formatDeviceInfoText,
-  type FullDeviceInfo,
+  type FullDeviceInfo
 } from '@/services/device-info';
-import { textStyles } from '@/design-system/foundations/typography';
-import { Green } from '@/design-system/foundations/colors';
+import {
+  RefreshCw,
+  Copy,
+  Check,
+  Smartphone,
+  Cpu,
+  HardDrive,
+  Battery,
+  Zap,
+  Clock,
+  Fingerprint,
+  Box,
+  Layers
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip
+} from 'recharts';
 
-// Icons
-const RefreshIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C10.2091 2 12.1182 3.28 13.1429 5.14286"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
-    <path
-      d="M10 5H14V1"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
+// --- Components ---
+
+const InfoItem = ({ label, value, icon: Icon }: { label: string, value: string | number, icon?: any }) => (
+  <div className="flex items-center justify-between py-3 border-b border-border/40 last:border-0 hover:bg-muted/30 px-2 rounded-lg transition-colors">
+    <div className="flex items-center gap-2.5 text-muted-foreground">
+      {Icon && <Icon className="w-4 h-4 opacity-70" />}
+      <span className="text-sm font-medium">{label}</span>
+    </div>
+    <span className="text-sm font-semibold text-foreground text-right font-mono truncate max-w-[180px]" title={String(value)}>
+      {value}
+    </span>
+  </div>
 );
 
-const CopyIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="5" y="5" width="9" height="9" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <path
-      d="M11 5V3C11 2.44772 10.5523 2 10 2H3C2.44772 2 2 2.44772 2 3V10C2 10.5523 2.44772 11 3 11H5"
-      stroke="currentColor"
-      strokeWidth="1.5"
-    />
-  </svg>
-);
+const StatCard = ({ title, icon: Icon, children, className, loading }: any) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+    className={className}
+  >
+    <Card className="h-full bg-card/50 backdrop-blur-sm border-white/5 shadow-lg overflow-hidden relative">
+      {/* Decorative gradient blob */}
+      <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
 
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M13.3334 4L6.00002 11.3333L2.66669 8"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const DeviceIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="1" width="10" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-    <line x1="6" y1="12" x2="10" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-const BuildIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M13 5L8 2L3 5V11L8 14L13 11V5Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-    />
-    <path d="M8 8V14" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M3 5L8 8L13 5" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
-
-const CpuIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="4" y="4" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M6 1V4M10 1V4M6 12V15M10 12V15M1 6H4M1 10H4M12 6H15M12 10H15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-const StorageIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <circle cx="5" cy="8" r="1" fill="currentColor" />
-    <path d="M8 6H12M8 10H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-const BatteryIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="4" width="10" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M12 6.5H13.5C13.7761 6.5 14 6.72386 14 7V9C14 9.27614 13.7761 9.5 13.5 9.5H12" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M5 7V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
+      <CardHeader className="pb-3 border-b border-border/40 bg-muted/10">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <Icon className="w-5 h-5" />
+          </div>
+          <CardTitle className="text-base font-semibold tracking-tight">{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {loading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-4 bg-muted/50 rounded w-1/3" />
+            <div className="h-8 bg-muted/50 rounded w-full" />
+            <div className="h-4 bg-muted/50 rounded w-2/3" />
+          </div>
+        ) : (
+          children
+        )}
+      </CardContent>
+    </Card>
+  </motion.div>
 );
 
 const AUTO_REFRESH_INTERVALS = [
@@ -104,7 +94,6 @@ const AUTO_REFRESH_INTERVALS = [
   { label: '5s', value: 5000 },
   { label: '10s', value: 10000 },
   { label: '30s', value: 30000 },
-  { label: '60s', value: 60000 },
 ];
 
 export default function DashboardPage() {
@@ -133,14 +122,12 @@ export default function DashboardPage() {
     }
   }, [connectionState, deviceInfo]);
 
-  // Initial fetch on connection
   useEffect(() => {
     if (connectionState === 'connected' && deviceInfo && !fullInfo) {
       fetchInfo();
     }
   }, [connectionState, deviceInfo, fullInfo, fetchInfo]);
 
-  // Reset info when disconnected
   useEffect(() => {
     if (connectionState !== 'connected') {
       setFullInfo(null);
@@ -148,29 +135,22 @@ export default function DashboardPage() {
     }
   }, [connectionState]);
 
-  // Auto-refresh
   useEffect(() => {
     if (autoRefresh === 0 || connectionState !== 'connected') return;
-
     const interval = setInterval(fetchInfo, autoRefresh);
     return () => clearInterval(interval);
   }, [autoRefresh, connectionState, fetchInfo]);
 
   const handleCopyAll = async () => {
     if (!fullInfo) return;
-
     try {
       const text = formatDeviceInfoText(fullInfo);
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API failed
+      // Clipboard fail
     }
-  };
-
-  const handleRefresh = () => {
-    fetchInfo();
   };
 
   if (connectionState !== 'connected') {
@@ -180,168 +160,223 @@ export default function DashboardPage() {
           <EmptyState
             title="No Device Connected"
             description="Connect an Android device via USB to view device information and use debugging tools."
+            icon={<Smartphone className="w-16 h-16 text-muted-foreground/30" />}
           />
         </div>
       </PageLayout>
     );
   }
 
+  // Storage Chart Data
+  // Storage Chart Data
+  // const storageData = ... (removed unused variable relying on invalid props)
+
   return (
     <PageLayout>
-      <div className="h-full flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+      <div className="h-full flex flex-col space-y-6 pt-2 pb-8 px-8 overflow-y-auto scrollbar-hide">
+
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
           <div>
-            <h1 style={{ ...textStyles.h4 }} className="text-foreground">
-              Device Dashboard
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+              {deviceInfo?.model || 'Device'} Dashboard
             </h1>
-            {lastRefresh && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Last updated: {lastRefresh.toLocaleTimeString()}
-              </p>
-            )}
+            <div className="flex items-center gap-2 mt-1.5 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md font-mono text-xs border border-border/50">
+                <Clock className="w-3 h-3" />
+                Updated: {lastRefresh ? lastRefresh.toLocaleTimeString() : '--:--'}
+              </span>
+              {autoRefresh > 0 && <span className="text-green-500 text-xs font-medium px-2">• Live Updates On</span>}
+            </div>
           </div>
+
           <div className="flex items-center gap-3">
-            {/* Auto-refresh selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Auto-refresh:</span>
+            <div className="relative group">
               <select
                 value={autoRefresh}
                 onChange={(e) => setAutoRefresh(Number(e.target.value))}
-                className="text-sm bg-background border border-border rounded px-2 py-1 text-foreground"
+                className="appearance-none bg-background border border-input rounded-lg px-4 py-2 pr-8 text-sm focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 {AUTO_REFRESH_INTERVALS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+              <RefreshCw className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             </div>
 
-            {/* Refresh button */}
             <Button
-              variant="ghost"
-              size="small"
-              icon={<RefreshIcon />}
-              onClick={handleRefresh}
+              variant="outline"
+              size="medium"
+              className="gap-2"
+              onClick={fetchInfo}
               disabled={loading}
+              icon={<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}
             >
               Refresh
             </Button>
 
-            {/* Copy All button */}
             <Button
-              variant="secondary"
-              size="small"
-              icon={copied ? <CheckIcon /> : <CopyIcon />}
+              variant={copied ? 'success' : 'primary'}
+              size="medium"
+              className="gap-2 shadow-lg shadow-primary/10"
               onClick={handleCopyAll}
               disabled={!fullInfo}
+              icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             >
-              {copied ? 'Copied!' : 'Copy All'}
+              {copied ? 'Copied' : 'Export Info'}
             </Button>
           </div>
         </div>
 
-        {/* Error state */}
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium flex items-center gap-3"
+          >
+            <div className="p-1 rounded-full bg-destructive/20">!</div>
+            {error}
+          </motion.div>
         )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Device Identity */}
-            <InfoPanel title="Device Identity" icon={<DeviceIcon />} loading={loading && !fullInfo}>
-              {fullInfo && (
-                <>
-                  <InfoRow label="Model" value={fullInfo.identity.model} />
-                  <InfoRow label="Manufacturer" value={fullInfo.identity.manufacturer} />
-                  <InfoRow label="Device" value={fullInfo.identity.device} />
-                  <InfoRow label="Serial" value={fullInfo.identity.serial} />
-                </>
-              )}
-            </InfoPanel>
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-8">
 
-            {/* Build Information */}
-            <InfoPanel title="Build Information" icon={<BuildIcon />} loading={loading && !fullInfo}>
-              {fullInfo && (
-                <>
-                  <InfoRow label="Android Version" value={fullInfo.build.androidVersion} />
-                  <InfoRow label="SDK Level" value={fullInfo.build.sdkLevel} />
-                  <InfoRow label="Security Patch" value={fullInfo.build.securityPatch} />
-                  <InfoRow label="Build Date" value={fullInfo.build.buildDate} />
-                </>
-              )}
-            </InfoPanel>
-
-            {/* Hardware Information */}
-            <InfoPanel title="Hardware" icon={<CpuIcon />} loading={loading && !fullInfo}>
-              {fullInfo && (
-                <>
-                  <InfoRow label="CPU Architecture" value={fullInfo.hardware.cpuArchitecture} />
-                  <InfoRow label="Hardware" value={fullInfo.hardware.hardwarePlatform} />
-                  <InfoRow label="Total RAM" value={fullInfo.hardware.totalRam} />
-                  <InfoRow label="Display" value={fullInfo.hardware.displayResolution} />
-                  <InfoRow label="Density" value={fullInfo.hardware.displayDensity} />
-                </>
-              )}
-            </InfoPanel>
-
-            {/* Storage Information */}
-            <InfoPanel title="Storage" icon={<StorageIcon />} loading={loading && !fullInfo}>
-              {fullInfo && (
-                <>
-                  <InfoRow label="Total" value={fullInfo.storage.totalStorage} />
-                  <InfoRow label="Used" value={fullInfo.storage.usedStorage} />
-                  <InfoRow label="Available" value={fullInfo.storage.availableStorage} />
-                  <div className="py-2">
-                    <span className="text-xs text-muted-foreground block mb-2">Usage</span>
-                    <ProgressBar value={fullInfo.storage.usagePercent} />
+          {/* 1. Device Identity */}
+          <StatCard title="Device Identity" icon={Smartphone} loading={loading && !fullInfo}>
+            {fullInfo && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-center p-6 pb-2">
+                  <div className="w-20 h-20 bg-gradient-to-tr from-primary/20 to-secondary/20 rounded-2xl flex items-center justify-center">
+                    <Smartphone className="w-10 h-10 text-foreground/80" />
                   </div>
-                </>
-              )}
-            </InfoPanel>
-
-            {/* Battery Information */}
-            <InfoPanel title="Battery" icon={<BatteryIcon />} loading={loading && !fullInfo}>
-              {fullInfo && (
-                <>
-                  <div className="py-3">
-                    <BatteryIndicator
-                      level={fullInfo.battery.level}
-                      status={fullInfo.battery.status}
-                    />
-                  </div>
-                  <InfoRow label="Status" value={fullInfo.battery.status} />
-                  <InfoRow label="Health" value={fullInfo.battery.health} />
-                  <InfoRow label="Temperature" value={fullInfo.battery.temperature} />
-                  <InfoRow label="Voltage" value={fullInfo.battery.voltage} />
-                  <InfoRow label="Technology" value={fullInfo.battery.technology} />
-                </>
-              )}
-            </InfoPanel>
-
-            {/* Build Fingerprint - spans full width on larger screens */}
-            <InfoPanel
-              title="Build Fingerprint"
-              icon={<BuildIcon />}
-              loading={loading && !fullInfo}
-              className="md:col-span-2 lg:col-span-1"
-            >
-              {fullInfo && (
-                <div className="py-2">
-                  <p
-                    className="text-xs text-muted-foreground break-all font-mono"
-                    style={{ lineHeight: '1.5' }}
-                  >
-                    {fullInfo.build.buildFingerprint}
-                  </p>
                 </div>
-              )}
-            </InfoPanel>
-          </div>
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-bold">{fullInfo.identity.model}</h3>
+                  <p className="text-sm text-muted-foreground">{fullInfo.identity.manufacturer}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <InfoItem label="Codename" value={fullInfo.identity.device} icon={Box} />
+                  <InfoItem label="Serial" value={fullInfo.identity.serial} icon={Fingerprint} />
+                </div>
+              </div>
+            )}
+          </StatCard>
+
+          {/* 2. Battery Status */}
+          <StatCard title="Power & Battery" icon={Battery} loading={loading && !fullInfo}>
+            {fullInfo && (
+              <div className="flex flex-col h-full">
+                <div className="flex-1 flex flex-col items-center justify-center py-4">
+                  <div className="relative w-32 h-32 flex items-center justify-center">
+                    {/* Circular Progress for Battery */}
+                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/20" />
+                      <motion.circle
+                        cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8"
+                        className={fullInfo.battery.level < 20 ? 'text-red-500' : fullInfo.battery.level < 50 ? 'text-amber-500' : 'text-green-500'}
+                        strokeDasharray="283"
+                        strokeDashoffset={283 - (283 * fullInfo.battery.level) / 100}
+                        initial={{ strokeDashoffset: 283 }}
+                        animate={{ strokeDashoffset: 283 - (283 * fullInfo.battery.level) / 100 }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <Zap className={`w-6 h-6 mb-1 ${fullInfo.battery.status === 'Charging' ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                      <span className="text-2xl font-bold">{fullInfo.battery.level}%</span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-muted-foreground">{fullInfo.battery.status}</p>
+                </div>
+
+                <div className="space-y-0.5">
+                  <InfoItem label="Health" value={fullInfo.battery.health} icon={Check} />
+                  <InfoItem label="Temperature" value={`${(Number(fullInfo.battery.temperature) / 10).toFixed(1)}°C`} icon={Clock} />
+                </div>
+              </div>
+            )}
+          </StatCard>
+
+          {/* 3. Storage */}
+          <StatCard title="Storage" icon={HardDrive} loading={loading && !fullInfo}>
+            {fullInfo && (
+              <div className="flex flex-col h-full">
+                <div className="h-40 w-full relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Used', value: fullInfo.storage.usagePercent },
+                          { name: 'Free', value: 100 - fullInfo.storage.usagePercent }
+                        ]}
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        <Cell key="cell-used" fill="hsl(var(--primary))" />
+                        <Cell key="cell-free" fill="hsl(var(--muted))" />
+                      </Pie>
+                      <RechartsTooltip
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <span className="text-xl font-bold block">{fullInfo.storage.usagePercent}%</span>
+                      <span className="text-xs text-muted-foreground">Used</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-0.5 mt-2">
+                  <InfoItem label="Total" value={fullInfo.storage.totalStorage} />
+                  <InfoItem label="Available" value={fullInfo.storage.availableStorage} />
+                </div>
+              </div>
+            )}
+          </StatCard>
+
+          {/* 4. Hardware Specs */}
+          <StatCard title="Hardware Specs" icon={Cpu} loading={loading && !fullInfo}>
+            {fullInfo && (
+              <div className="grid grid-cols-1 gap-1">
+                <InfoItem label="Platform" value={fullInfo.hardware.hardwarePlatform} icon={Cpu} />
+                <InfoItem label="CPU ABI" value={fullInfo.hardware.cpuArchitecture} />
+                <InfoItem label="RAM" value={fullInfo.hardware.totalRam} />
+                <InfoItem label="Resolution" value={fullInfo.hardware.displayResolution} />
+                <InfoItem label="Density" value={fullInfo.hardware.displayDensity} />
+              </div>
+            )}
+          </StatCard>
+
+          {/* 5. Software Build */}
+          <StatCard title="Software Build" icon={Layers} loading={loading && !fullInfo} className="md:col-span-2 xl:col-span-2">
+            {fullInfo && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+                <div className="space-y-1">
+                  <InfoItem label="Android Version" value={fullInfo.build.androidVersion} />
+                  <InfoItem label="SDK Level" value={fullInfo.build.sdkLevel} />
+                  <InfoItem label="Security Patch" value={fullInfo.build.securityPatch} />
+                </div>
+                <div className="space-y-1">
+                  <InfoItem label="Build ID" value={fullInfo.build.buildDate} />
+                  {/* Note: buildDate typically comes as an ID or timestamp, renamed label for clarity if needed, or stick to Build Date */}
+
+                  <div className="py-2.5 border-b border-border/40 hover:bg-muted/30 px-2 rounded-lg transition-colors">
+                    <span className="text-xs text-muted-foreground block mb-1">Build Fingerprint</span>
+                    <code className="text-xs font-mono text-foreground break-all bg-muted/50 p-1.5 rounded block">
+                      {fullInfo.build.buildFingerprint}
+                    </code>
+                  </div>
+                </div>
+              </div>
+            )}
+          </StatCard>
+
         </div>
       </div>
     </PageLayout>

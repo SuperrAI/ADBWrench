@@ -6,58 +6,19 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useDevice } from '@/context/device-context';
 import { Button } from '@/design-system/components/Button';
 import { captureScreenshot, shellStream, pullFile, deleteFile } from '@/services/adb';
-import { textStyles } from '@/design-system/foundations/typography';
 import { cn } from '@/lib/utils';
-
-// Icons
-const CameraIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="4" width="14" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <circle cx="8" cy="9" r="3" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M5 4V3C5 2.44772 5.44772 2 6 2H10C10.5523 2 11 2.44772 11 3V4" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
-
-const VideoIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="3" width="10" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M11 6L15 4V12L11 10" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-  </svg>
-);
-
-const StopIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="3" width="10" height="10" rx="1" fill="currentColor" />
-  </svg>
-);
-
-const DownloadIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 2V10M8 10L5 7M8 10L11 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M2 12V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-const CopyIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="5" y="5" width="9" height="9" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M11 5V3C11 2.44772 10.5523 2 10 2H3C2.44772 2 2 2.44772 2 3V10C2 10.5523 2.44772 11 3 11H5" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2 4H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <path d="M5 4V3C5 2.44772 5.44772 2 6 2H10C10.5523 2 11 2.44772 11 3V4" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M3 4L4 13C4 13.5523 4.44772 14 5 14H11C11.5523 14 12 13.5523 12 13L13 4" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M13.3334 4L6.00002 11.3333L2.66669 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+import {
+  Camera,
+  Video,
+  Square,
+  Download,
+  Copy,
+  Trash2,
+  Check,
+  Clock,
+  Image as ImageIcon,
+  Monitor
+} from 'lucide-react';
 
 // Recording duration options (in seconds)
 const DURATION_OPTIONS = [
@@ -273,6 +234,7 @@ export default function ScreenshotPage() {
           <EmptyState
             title="No Device Connected"
             description="Connect an Android device via USB to capture screenshots and recordings."
+            icon={<Monitor className="w-16 h-16 text-muted-foreground/30" />}
           />
         </div>
       </PageLayout>
@@ -281,18 +243,24 @@ export default function ScreenshotPage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col overflow-hidden">
+      <div className="h-full flex flex-col overflow-hidden bg-background">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-          <h1 style={{ ...textStyles.h4 }} className="text-foreground">
-            Screenshot & Recording
-          </h1>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+              <Monitor className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">Screenshot & Recording</h1>
+              <p className="text-xs text-muted-foreground">Capture device screen</p>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             {/* Screenshot button */}
             <Button
               variant="primary"
               size="small"
-              icon={<CameraIcon />}
+              icon={<Camera className="w-4 h-4" />}
               onClick={handleCapture}
               disabled={isCapturing || isRecording}
             >
@@ -302,19 +270,22 @@ export default function ScreenshotPage() {
             {/* Recording controls */}
             {!isRecording ? (
               <>
-                <select
-                  value={recordingDuration}
-                  onChange={(e) => setRecordingDuration(Number(e.target.value))}
-                  className="text-sm bg-background border border-border rounded px-2 py-1 text-foreground"
-                >
-                  {DURATION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 rounded-md border border-border/50">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <select
+                    value={recordingDuration}
+                    onChange={(e) => setRecordingDuration(Number(e.target.value))}
+                    className="bg-transparent text-xs font-medium outline-none cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {DURATION_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
                 <Button
                   variant="secondary"
                   size="small"
-                  icon={<VideoIcon />}
+                  icon={<Video className="w-4 h-4" />}
                   onClick={handleStartRecording}
                   disabled={isCapturing}
                 >
@@ -323,9 +294,9 @@ export default function ScreenshotPage() {
               </>
             ) : (
               <Button
-                variant="primary"
+                variant="warning"
                 size="small"
-                icon={<StopIcon />}
+                icon={<Square className="w-3 h-3 fill-current" />}
                 onClick={handleStopRecording}
               >
                 Stop ({formatTime(recordingElapsed)} / {formatTime(recordingDuration)})
@@ -336,27 +307,30 @@ export default function ScreenshotPage() {
 
         {/* Error message */}
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <div className="mx-6 mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
+            <p className="text-sm text-destructive font-medium">{error}</p>
           </div>
         )}
 
         {/* Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Preview area */}
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-neutral-100 dark:bg-neutral-900">
+          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-muted/20">
             {selectedScreenshot ? (
               <div className="flex flex-col items-center gap-4 max-h-full">
-                <img
-                  src={selectedScreenshot.data}
-                  alt="Screenshot preview"
-                  className="max-w-full max-h-[calc(100vh-300px)] object-contain rounded-lg shadow-lg"
-                />
-                <div className="flex items-center gap-2">
+                <div className="relative group">
+                  <img
+                    src={selectedScreenshot.data}
+                    alt="Screenshot preview"
+                    className="max-w-full max-h-[calc(100vh-300px)] object-contain rounded-xl shadow-2xl border border-border/50"
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-card/80 backdrop-blur-sm rounded-xl border border-border/50 shadow-lg">
                   <Button
                     variant="secondary"
                     size="small"
-                    icon={<DownloadIcon />}
+                    icon={<Download className="w-4 h-4" />}
                     onClick={handleDownload}
                   >
                     Download
@@ -364,7 +338,7 @@ export default function ScreenshotPage() {
                   <Button
                     variant="secondary"
                     size="small"
-                    icon={copied ? <CheckIcon /> : <CopyIcon />}
+                    icon={copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                     onClick={handleCopy}
                   >
                     {copied ? 'Copied!' : 'Copy'}
@@ -372,42 +346,54 @@ export default function ScreenshotPage() {
                   <Button
                     variant="ghost"
                     size="small"
-                    icon={<TrashIcon />}
+                    icon={<Trash2 className="w-4 h-4" />}
                     onClick={() => handleDelete(selectedScreenshot.id)}
+                    className="hover:bg-destructive/10 hover:text-destructive"
                   >
                     Delete
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground font-medium">
                   {selectedScreenshot.timestamp.toLocaleString()}
                 </p>
               </div>
             ) : (
-              <div className="text-center text-muted-foreground">
-                <CameraIcon />
-                <p className="mt-2">Click "Screenshot" to capture the device screen</p>
-                <p className="text-xs mt-1">or "Record" to capture a video</p>
+              <div className="flex flex-col items-center justify-center text-center p-8">
+                <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-6">
+                  <ImageIcon className="w-10 h-10 text-muted-foreground/30" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Ready to Capture</h3>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Click <span className="font-medium text-primary">Screenshot</span> to capture the device screen
+                  or <span className="font-medium text-primary">Record</span> to capture video
+                </p>
               </div>
             )}
           </div>
 
           {/* History sidebar */}
           {screenshots.length > 0 && (
-            <div className="w-48 border-l border-border bg-background overflow-y-auto shrink-0">
-              <div className="p-3">
-                <h3 className="text-xs font-medium text-muted-foreground mb-2">
-                  History ({screenshots.length})
-                </h3>
-                <div className="space-y-2">
+            <div className="w-56 border-l border-border/60 bg-card/30 backdrop-blur-sm overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-muted-foreground/20">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5" />
+                    History
+                  </h3>
+                  <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                    {screenshots.length}
+                  </span>
+                </div>
+                <div className="space-y-3">
                   {screenshots.map((screenshot) => (
                     <button
                       key={screenshot.id}
                       onClick={() => setSelectedScreenshot(screenshot)}
                       className={cn(
-                        'w-full aspect-video rounded overflow-hidden border-2 transition-colors',
+                        'w-full aspect-video rounded-lg overflow-hidden transition-all duration-200 relative group',
                         selectedScreenshot?.id === screenshot.id
-                          ? 'border-primary'
-                          : 'border-transparent hover:border-border'
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-card shadow-lg'
+                          : 'border border-border/50 hover:border-primary/50 hover:shadow-md hover:scale-[1.02]'
                       )}
                     >
                       <img
@@ -415,6 +401,18 @@ export default function ScreenshotPage() {
                         alt="Screenshot thumbnail"
                         className="w-full h-full object-cover"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(screenshot.id);
+                          }}
+                          className="p-1.5 bg-destructive/90 hover:bg-destructive rounded-md text-white transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -425,9 +423,23 @@ export default function ScreenshotPage() {
 
         {/* Recording indicator */}
         {isRecording && (
-          <div className="px-4 py-2 bg-red-500 text-white text-center text-sm flex items-center justify-center gap-2">
-            <span className="animate-pulse">●</span>
-            Recording... {formatTime(recordingElapsed)} / {formatTime(recordingDuration)}
+          <div className="px-4 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white text-center text-sm flex items-center justify-center gap-3 shadow-lg">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span className="font-medium">Recording in progress</span>
+            <span className="font-mono bg-white/20 px-2 py-0.5 rounded-md">
+              {formatTime(recordingElapsed)} / {formatTime(recordingDuration)}
+            </span>
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={handleStopRecording}
+              className="ml-2 bg-white/10 hover:bg-white/20 text-white border-white/20"
+            >
+              Stop Recording
+            </Button>
           </div>
         )}
       </div>

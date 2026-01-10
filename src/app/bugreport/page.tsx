@@ -5,8 +5,22 @@ import PageLayout from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/design-system/components/Button';
-import { shell, shellStream, pullFile } from '@/services/adb';
+import { shellStream, pullFile } from '@/services/adb';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import {
+  Bug,
+  Play,
+  Square,
+  Download,
+  Check,
+  X,
+  AlertCircle,
+  Clock,
+  Info,
+  FileArchive,
+  Loader2
+} from 'lucide-react';
 
 interface BugreportEntry {
   id: string;
@@ -235,6 +249,7 @@ export default function BugreportPage() {
           <EmptyState
             title="No Device Connected"
             description="Connect an Android device to generate bugreports."
+            icon={<Bug className="w-16 h-16 text-muted-foreground/30" />}
           />
         </div>
       </PageLayout>
@@ -243,134 +258,170 @@ export default function BugreportPage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col p-4 overflow-auto">
+      <div className="h-full flex flex-col overflow-hidden bg-background">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Bugreport Generator</h1>
-            <p className="text-gray-400 text-sm mt-1">
-              Generate Android bugreports for debugging and diagnostics
-            </p>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+              <Bug className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">Bugreport Generator</h1>
+              <p className="text-xs text-muted-foreground">Generate diagnostic reports</p>
+            </div>
           </div>
           <Button
             variant={isGenerating ? 'warning' : 'primary'}
             onClick={isGenerating ? cancelBugreport : startBugreport}
+            icon={isGenerating ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
           >
             {isGenerating ? 'Cancel' : 'Generate Bugreport'}
           </Button>
         </div>
 
-        {/* Info Box */}
-        <div className="bg-blue-900/20 border border-blue-800 rounded-md p-4 mb-6">
-          <h3 className="text-blue-400 font-medium mb-2">About Bugreports</h3>
-          <p className="text-gray-300 text-sm">
-            Bugreports contain comprehensive system logs, device state, and diagnostic information.
-            Generation typically takes 2-5 minutes. The resulting ZIP file can be analyzed using
-            Android Studio or shared with developers for debugging.
-          </p>
-        </div>
-
-        {/* Current Report Progress */}
-        {currentReport && currentReport.status === 'generating' && (
-          <div className="bg-gray-800 rounded-md p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">Generating Bugreport</h3>
-                <p className="text-gray-400 text-sm">
-                  Started at {formatTime(currentReport.startTime)}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-mono">{currentReport.progress}%</div>
-                <div className="text-gray-400 text-sm">
-                  Est. remaining: {getEstimatedRemaining(currentReport)}
-                </div>
-              </div>
+        <div className="flex-1 overflow-auto p-6 bg-muted/20 scrollbar-thin scrollbar-thumb-muted-foreground/20">
+          {/* Info Box */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 flex gap-4">
+            <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400 h-fit">
+              <Info className="w-5 h-5" />
             </div>
-
-            {/* Progress Bar */}
-            <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-500 transition-all duration-500"
-                style={{ width: `${currentReport.progress}%` }}
-              />
+            <div>
+              <h3 className="text-blue-400 font-semibold mb-1">About Bugreports</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Bugreports contain comprehensive system logs, device state, and diagnostic information.
+                Generation typically takes 2-5 minutes. The resulting ZIP file can be analyzed using
+                Android Studio or shared with developers for debugging.
+              </p>
             </div>
-
-            <p className="text-gray-400 text-sm mt-4 text-center">
-              Please wait... This may take several minutes.
-            </p>
           </div>
-        )}
 
-        {/* History */}
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold mb-4">Report History</h2>
-
-          {history.length === 0 ? (
-            <div className="bg-gray-800 rounded-md p-8 text-center text-gray-400">
-              <p>No bugreports generated yet this session.</p>
-              <p className="text-sm mt-2">Click &quot;Generate Bugreport&quot; to create one.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {history.map((report) => (
-                <div
-                  key={report.id}
-                  className="bg-gray-800 rounded-md p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Status Icon */}
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        report.status === 'completed'
-                          ? 'bg-green-900/50 text-green-400'
-                          : report.status === 'failed'
-                          ? 'bg-red-900/50 text-red-400'
-                          : 'bg-yellow-900/50 text-yellow-400'
-                      }`}
-                    >
-                      {report.status === 'completed' ? '✓' : report.status === 'failed' ? '✕' : '○'}
-                    </div>
-
-                    <div>
-                      <div className="font-medium">{report.filename}</div>
-                      <div className="text-sm text-gray-400">
-                        {formatTime(report.startTime)}
-                        {report.endTime && ` • Duration: ${formatDuration(report.endTime - report.startTime)}`}
-                      </div>
-                      {report.error && (
-                        <div className="text-sm text-red-400">{report.error}</div>
-                      )}
-                    </div>
+          {/* Current Report Progress */}
+          {currentReport && currentReport.status === 'generating' && (
+            <div className="bg-gradient-to-br from-primary/10 via-card/80 to-card border border-primary/30 rounded-xl p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    {report.status === 'completed' && report.path && (
-                      <Button
-                        variant="primary"
-                        size="small"
-                        onClick={() => downloadBugreport(report)}
-                      >
-                        Download
-                      </Button>
-                    )}
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        report.status === 'completed'
-                          ? 'bg-green-900/30 text-green-400'
-                          : report.status === 'failed'
-                          ? 'bg-red-900/30 text-red-400'
-                          : 'bg-yellow-900/30 text-yellow-400'
-                      }`}
-                    >
-                      {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
-                    </span>
+                  <div>
+                    <h3 className="text-lg font-semibold">Generating Bugreport</h3>
+                    <p className="text-muted-foreground text-sm flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Started at {formatTime(currentReport.startTime)}
+                    </p>
                   </div>
                 </div>
-              ))}
+                <div className="text-right">
+                  <div className="text-3xl font-mono font-bold text-primary">{currentReport.progress}%</div>
+                  <div className="text-muted-foreground text-sm">
+                    Est. remaining: {getEstimatedRemaining(currentReport)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500 rounded-full"
+                  style={{ width: `${currentReport.progress}%` }}
+                />
+              </div>
+
+              <p className="text-muted-foreground text-sm mt-4 text-center">
+                Please wait... This may take several minutes.
+              </p>
             </div>
           )}
+
+          {/* History */}
+          <div className="flex-1">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5" />
+              Report History
+            </h2>
+
+            {history.length === 0 ? (
+              <div className="bg-card/50 border border-border/50 rounded-xl p-8 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <FileArchive className="w-8 h-8 text-muted-foreground/30" />
+                </div>
+                <p className="text-foreground font-medium mb-1">No bugreports generated yet</p>
+                <p className="text-sm text-muted-foreground">Click &quot;Generate Bugreport&quot; to create one.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {history.map((report) => (
+                  <div
+                    key={report.id}
+                    className={cn(
+                      "bg-card/50 border rounded-xl p-4 flex items-center justify-between transition-all hover:shadow-md",
+                      report.status === 'completed' && "border-green-500/30 hover:border-green-500/50",
+                      report.status === 'failed' && "border-red-500/30 hover:border-red-500/50",
+                      report.status === 'cancelled' && "border-amber-500/30 hover:border-amber-500/50"
+                    )}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Status Icon */}
+                      <div
+                        className={cn(
+                          "w-11 h-11 rounded-xl flex items-center justify-center border",
+                          report.status === 'completed' && "bg-green-500/10 text-green-500 border-green-500/30",
+                          report.status === 'failed' && "bg-red-500/10 text-red-500 border-red-500/30",
+                          report.status === 'cancelled' && "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                        )}
+                      >
+                        {report.status === 'completed' && <Check className="w-5 h-5" />}
+                        {report.status === 'failed' && <X className="w-5 h-5" />}
+                        {report.status === 'cancelled' && <AlertCircle className="w-5 h-5" />}
+                      </div>
+
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          <FileArchive className="w-4 h-4 text-muted-foreground" />
+                          {report.filename}
+                        </div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-0.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          {formatTime(report.startTime)}
+                          {report.endTime && ` • ${formatDuration(report.endTime - report.startTime)}`}
+                        </div>
+                        {report.error && (
+                          <div className="text-sm text-red-400 mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            {report.error}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3">
+                      {report.status === 'completed' && report.path && (
+                        <Button
+                          variant="primary"
+                          size="small"
+                          onClick={() => downloadBugreport(report)}
+                          icon={<Download className="w-4 h-4" />}
+                        >
+                          Download
+                        </Button>
+                      )}
+                      <span
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg text-xs font-medium",
+                          report.status === 'completed' && "bg-green-500/10 text-green-500 border border-green-500/30",
+                          report.status === 'failed' && "bg-red-500/10 text-red-500 border border-red-500/30",
+                          report.status === 'cancelled' && "bg-amber-500/10 text-amber-500 border border-amber-500/30"
+                        )}
+                      >
+                        {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </PageLayout>

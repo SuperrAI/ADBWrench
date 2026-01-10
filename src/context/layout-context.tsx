@@ -41,7 +41,7 @@ const LayoutContext = createContext<LayoutContextType>({
   showFilterModal: false,
   toggleFilterModal: () => {},
   filterButtonRef: { current: null },
-  showHeader: true,
+  showHeader: false,
   setShowHeader: () => {},
   layoutType: '3-col',
   setLayoutType: () => {},
@@ -55,7 +55,7 @@ export function LayoutProvider({ children }: PropsWithChildren) {
   const [cardStyle, setCardStyle] = useState<CardStyle>('default');
   const [cardScrollBehavior, setCardScrollBehavior] = useState<ScrollBehavior>('all');
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
+  const [showHeader, setShowHeader] = useState(false);
   const [layoutType, setLayoutType] = useState<LayoutType>('3-col');
   const [headerProps, setHeaderProps] = useState<HeaderProps>({});
   const [isSideNavHovered, setIsSideNavHovered] = useState(false);

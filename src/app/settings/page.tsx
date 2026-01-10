@@ -1,12 +1,32 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import PageLayout from '@/design-system/patterns/PageLayout/PageLayout';
+import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/design-system/components/Button';
 import { shell } from '@/services/adb';
 import { toast } from 'sonner';
+import {
+  Settings as SettingsIcon,
+  Search,
+  Zap,
+  Smartphone,
+  Wifi,
+  Eye,
+  MousePointer,
+  Layers,
+  Clock,
+  Edit2,
+  Trash2,
+  Save,
+  X,
+  RefreshCw,
+  ToggleLeft,
+  ToggleRight
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Namespace = 'system' | 'secure' | 'global';
 
@@ -23,65 +43,70 @@ interface QuickSetting {
   key: string;
   enableValue: string;
   disableValue: string;
+  icon: any;
 }
 
 const NAMESPACES: Namespace[] = ['system', 'secure', 'global'];
 
 const QUICK_SETTINGS: QuickSetting[] = [
   {
-    name: 'ADB over Network',
-    description: 'Enable wireless ADB debugging on port 5555',
+    name: 'Wireless ADB',
+    description: 'Enable debugging over network',
     namespace: 'global',
     key: 'adb_wifi_enabled',
     enableValue: '1',
     disableValue: '0',
+    icon: Wifi
   },
   {
     name: 'Show Touches',
-    description: 'Display visual feedback for touch events',
+    description: 'Visual feedback for interactions',
     namespace: 'system',
     key: 'show_touches',
     enableValue: '1',
     disableValue: '0',
+    icon: MousePointer
   },
   {
     name: 'Pointer Location',
-    description: 'Show pointer coordinates on screen',
+    description: 'Overlay coordinate data',
     namespace: 'system',
     key: 'pointer_location',
     enableValue: '1',
     disableValue: '0',
+    icon: Eye
   },
   {
-    name: 'Stay Awake (Charging)',
+    name: 'Stay Awake',
     description: 'Keep screen on while charging',
     namespace: 'global',
     key: 'stay_on_while_plugged_in',
-    enableValue: '3', // USB + AC
+    enableValue: '3',
     disableValue: '0',
+    icon: Zap
   },
   {
-    name: 'GPU Debug Layers',
-    description: 'Enable GPU debug layers for graphics debugging',
+    name: 'GPU Layers',
+    description: 'Force Enable GPU Debug Layers',
     namespace: 'global',
     key: 'enable_gpu_debug_layers',
     enableValue: '1',
     disableValue: '0',
+    icon: Layers
   },
   {
-    name: 'Animator Duration Scale',
-    description: 'Animation speed (0=off, 1=normal)',
+    name: 'Animator Scale',
+    description: 'Window animation scale',
     namespace: 'global',
     key: 'animator_duration_scale',
     enableValue: '1.0',
     disableValue: '0',
+    icon: Clock
   },
 ];
 
 export default function SettingsPage() {
   const { connectionState } = useDevice();
-  const isConnected = connectionState === 'connected';
-
   const [activeNamespace, setActiveNamespace] = useState<Namespace>('system');
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(false);
@@ -90,137 +115,73 @@ export default function SettingsPage() {
   const [editValue, setEditValue] = useState('');
   const [quickSettingsState, setQuickSettingsState] = useState<Record<string, boolean>>({});
 
-  // Load settings from namespace
   const loadSettings = useCallback(async (namespace: Namespace) => {
+    if (connectionState !== 'connected') return;
     setLoading(true);
     try {
       const output = await shell(`settings list ${namespace}`);
       const lines = output.trim().split('\n');
-      const parsed: Setting[] = [];
-
-      for (const line of lines) {
-        const match = line.match(/^([^=]+)=(.*)$/);
-        if (match) {
-          parsed.push({
-            namespace,
-            key: match[1],
-            value: match[2],
-          });
-        }
-      }
+      const parsed = lines
+        .map(line => {
+          const match = line.match(/^([^=]+)=(.*)$/);
+          return match ? { namespace, key: match[1], value: match[2] } : null;
+        })
+        .filter(Boolean) as Setting[];
 
       setSettings(parsed.sort((a, b) => a.key.localeCompare(b.key)));
-    } catch (error) {
-      toast.error(`Failed to load ${namespace} settings`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    } catch (e) { toast.error(`Failed to load ${namespace} settings`); }
+    finally { setLoading(false); }
+  }, [connectionState]);
 
-  // Load quick settings states
   const loadQuickSettingsState = useCallback(async () => {
+    if (connectionState !== 'connected') return;
     const states: Record<string, boolean> = {};
-
     for (const qs of QUICK_SETTINGS) {
       try {
-        const output = await shell(`settings get ${qs.namespace} ${qs.key}`);
-        const value = output.trim();
-        states[qs.key] = value === qs.enableValue;
-      } catch {
-        states[qs.key] = false;
-      }
+        const val = (await shell(`settings get ${qs.namespace} ${qs.key}`)).trim();
+        states[qs.key] = val === qs.enableValue;
+      } catch { states[qs.key] = false; }
     }
-
     setQuickSettingsState(states);
-  }, []);
+  }, [connectionState]);
 
-  // Initial load
   useEffect(() => {
-    if (isConnected) {
+    if (connectionState === 'connected') {
       loadSettings(activeNamespace);
       loadQuickSettingsState();
     }
-  }, [isConnected, activeNamespace, loadSettings, loadQuickSettingsState]);
+  }, [connectionState, activeNamespace, loadSettings, loadQuickSettingsState]);
 
-  // Toggle quick setting
   const toggleQuickSetting = async (qs: QuickSetting) => {
-    const currentState = quickSettingsState[qs.key];
-    const newValue = currentState ? qs.disableValue : qs.enableValue;
-
+    const current = quickSettingsState[qs.key];
+    const val = current ? qs.disableValue : qs.enableValue;
     try {
-      await shell(`settings put ${qs.namespace} ${qs.key} ${newValue}`);
-      setQuickSettingsState((prev) => ({
-        ...prev,
-        [qs.key]: !currentState,
-      }));
-      toast.success(`${qs.name} ${currentState ? 'disabled' : 'enabled'}`);
-
-      // Reload if viewing same namespace
-      if (activeNamespace === qs.namespace) {
-        loadSettings(activeNamespace);
-      }
-    } catch (error) {
-      toast.error(`Failed to update ${qs.name}`);
-    }
+      await shell(`settings put ${qs.namespace} ${qs.key} ${val}`);
+      setQuickSettingsState(p => ({ ...p, [qs.key]: !current }));
+      if (activeNamespace === qs.namespace) loadSettings(activeNamespace);
+    } catch { toast.error('Failed to update setting'); }
   };
 
-  // Edit setting
-  const startEdit = (setting: Setting) => {
-    setEditingSetting(setting);
-    setEditValue(setting.value);
-  };
-
-  // Save setting
-  const saveSetting = async () => {
+  const handleSave = async () => {
     if (!editingSetting) return;
-
     try {
       await shell(`settings put ${editingSetting.namespace} ${editingSetting.key} "${editValue}"`);
-      toast.success(`Updated ${editingSetting.key}`);
+      toast.success('Saved');
       setEditingSetting(null);
       loadSettings(activeNamespace);
-      loadQuickSettingsState();
-    } catch (error) {
-      toast.error(`Failed to update setting: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    } catch { toast.error('Failed to save'); }
   };
 
-  // Delete/reset setting
-  const deleteSetting = async (setting: Setting) => {
-    try {
-      await shell(`settings delete ${setting.namespace} ${setting.key}`);
-      toast.success(`Deleted ${setting.key}`);
-      loadSettings(activeNamespace);
-    } catch (error) {
-      toast.error(`Failed to delete setting`);
-    }
-  };
-
-  // Get single setting value
-  const getSetting = async (namespace: Namespace, key: string): Promise<string> => {
-    try {
-      const output = await shell(`settings get ${namespace} ${key}`);
-      return output.trim();
-    } catch {
-      return 'null';
-    }
-  };
-
-  // Filter settings by search query
-  const filteredSettings = settings.filter(
-    (s) =>
-      s.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.value.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = settings.filter(s =>
+    s.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.value.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!isConnected) {
+  if (connectionState !== 'connected') {
     return (
       <PageLayout>
-        <div className="h-full flex items-center justify-center p-6">
-          <EmptyState
-            title="No Device Connected"
-            description="Connect an Android device to view and edit settings."
-          />
+        <div className="h-full flex items-center justify-center p-8">
+          <EmptyState title="Settings Manager" description="Connect a device to modify system settings." icon={<SettingsIcon className="w-16 h-16 text-muted-foreground/30" />} />
         </div>
       </PageLayout>
     );
@@ -228,192 +189,197 @@ export default function SettingsPage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col p-4 overflow-hidden">
+      <div className="h-full flex flex-col bg-background relative overflow-hidden">
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Settings Viewer</h1>
+        <div className="px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm z-10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+              <SettingsIcon className="w-5 h-5" />
+            </div>
+            <h1 className="text-lg font-bold tracking-tight">System Settings</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="small" icon={<RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />} onClick={() => loadSettings(activeNamespace)} />
+          </div>
         </div>
 
-        {/* Quick Settings */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3">Quick Settings</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {QUICK_SETTINGS.map((qs) => (
-              <div
-                key={qs.key}
-                className="bg-gray-800 rounded-md p-4 flex items-center justify-between"
-              >
-                <div>
-                  <div className="font-medium">{qs.name}</div>
-                  <div className="text-sm text-gray-400">{qs.description}</div>
-                </div>
-                <button
-                  onClick={() => toggleQuickSetting(qs)}
-                  className={`w-12 h-6 rounded-full relative transition-colors ${
-                    quickSettingsState[qs.key] ? 'bg-blue-600' : 'bg-gray-600'
-                  }`}
-                >
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-muted-foreground/20">
+
+          {/* Quick Settings Grid */}
+          <div className="mb-8">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-1 flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5" />
+              Quick Toggles
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {QUICK_SETTINGS.map(qs => {
+                const isEnabled = quickSettingsState[qs.key];
+                return (
                   <div
-                    className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-all ${
-                      quickSettingsState[qs.key] ? 'left-6' : 'left-0.5'
-                    }`}
-                  />
+                    key={qs.key}
+                    className={cn(
+                      "group p-4 rounded-xl border backdrop-blur-sm transition-all duration-200 flex items-center gap-4 cursor-pointer",
+                      isEnabled
+                        ? "bg-gradient-to-br from-primary/10 via-card/80 to-card border-primary/30 hover:border-primary/50 shadow-sm"
+                        : "bg-card/50 border-border/50 hover:bg-card hover:border-border hover:shadow-md"
+                    )}
+                    onClick={() => toggleQuickSetting(qs)}
+                  >
+                    <div className={cn(
+                      "p-2.5 rounded-xl transition-all duration-200",
+                      isEnabled
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                        : "bg-muted/80 text-muted-foreground group-hover:bg-muted"
+                    )}>
+                      <qs.icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={cn("font-medium text-sm", isEnabled && "text-primary")}>{qs.name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate" title={qs.description}>{qs.description}</div>
+                    </div>
+                    <div className={cn(
+                      "transition-all duration-200",
+                      isEnabled ? "text-primary" : "text-muted-foreground/50 group-hover:text-muted-foreground"
+                    )}>
+                      {isEnabled ? <ToggleRight className="w-9 h-9" strokeWidth={1.5} /> : <ToggleLeft className="w-9 h-9" strokeWidth={1.5} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Namespace Tabs */}
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 bg-background/95 backdrop-blur z-10 py-2 border-b border-border/40">
+            <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+              {NAMESPACES.map(ns => (
+                <button
+                  key={ns}
+                  onClick={() => setActiveNamespace(ns)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-md text-xs font-medium capitalize transition-all",
+                    activeNamespace === ns ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  {ns}
                 </button>
+              ))}
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search keys..."
+                className="w-full bg-muted/30 border border-border rounded-lg pl-9 pr-4 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/50 transition-all hover:bg-muted/50"
+              />
+            </div>
+          </div>
+
+          {/* Settings List */}
+          <div className="pb-12">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/50">
+                <RefreshCw className="w-8 h-8 animate-spin mb-3" />
+                <p className="text-sm">Loading settings...</p>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Warning */}
-        <div className="bg-yellow-900/20 border border-yellow-800 rounded-md p-3 mb-4">
-          <p className="text-yellow-400 text-sm">
-            <strong>Warning:</strong> Modifying system settings can affect device behavior.
-            Some changes may require a reboot to take effect.
-          </p>
-        </div>
-
-        {/* Namespace Tabs and Search */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="flex bg-gray-800 rounded-md p-1">
-            {NAMESPACES.map((ns) => (
-              <button
-                key={ns}
-                onClick={() => setActiveNamespace(ns)}
-                className={`px-4 py-1.5 text-sm rounded transition-colors capitalize ${
-                  activeNamespace === ns
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {ns}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search settings..."
-              className="w-full px-4 py-2 bg-gray-800 rounded-md text-white placeholder-gray-500"
-            />
-          </div>
-
-          <Button
-            variant="secondary"
-            size="small"
-            onClick={() => loadSettings(activeNamespace)}
-          >
-            Refresh
-          </Button>
-        </div>
-
-        {/* Settings List */}
-        <div className="flex-1 overflow-auto bg-gray-900 rounded-md">
-          {loading ? (
-            <div className="flex items-center justify-center h-32 text-gray-400">
-              Loading settings...
-            </div>
-          ) : filteredSettings.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-gray-400">
-              {searchQuery ? 'No matching settings found' : 'No settings found'}
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead className="sticky top-0 bg-gray-800">
-                <tr className="text-left text-sm text-gray-400">
-                  <th className="p-3">Key</th>
-                  <th className="p-3">Value</th>
-                  <th className="p-3 w-32">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSettings.map((setting) => (
-                  <tr key={setting.key} className="border-t border-gray-800 hover:bg-gray-800/50">
-                    <td className="p-3">
-                      <code className="text-sm text-blue-400">{setting.key}</code>
-                    </td>
-                    <td className="p-3">
-                      <code className="text-sm text-gray-300 break-all">{setting.value || '(empty)'}</code>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => startEdit(setting)}
-                          className="text-sm text-blue-400 hover:text-blue-300"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteSetting(setting)}
-                          className="text-sm text-red-400 hover:text-red-300"
-                        >
-                          Reset
-                        </button>
+            ) : filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/50">
+                <Search className="w-10 h-10 mb-3 stroke-[1.5]" />
+                <p className="text-sm font-medium">No settings found</p>
+                <p className="text-xs mt-1">Try adjusting your search query</p>
+              </div>
+            ) : (
+              <div className="bg-card/50 rounded-xl border border-border/50 overflow-hidden divide-y divide-border/30">
+                {filtered.map((setting, index) => (
+                  <div
+                    key={setting.key}
+                    className="group flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20 truncate max-w-[400px]" title={setting.key}>
+                          {setting.key}
+                        </span>
                       </div>
-                    </td>
-                  </tr>
+                      <div className="mt-2 text-sm text-foreground/90 break-all font-medium">
+                        {setting.value || <span className="text-muted-foreground/50 italic font-normal">null</span>}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        iconOnly
+                        icon={<Edit2 className="w-3.5 h-3.5" />}
+                        className="hover:bg-primary/10 hover:text-primary"
+                        onClick={() => { setEditingSetting(setting); setEditValue(setting.value); }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        iconOnly
+                        icon={<Trash2 className="w-3.5 h-3.5" />}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                        onClick={async () => {
+                          if (confirm('Delete setting?')) {
+                            await shell(`settings delete ${setting.namespace} ${setting.key}`);
+                            loadSettings(activeNamespace);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Settings count */}
-        <div className="mt-2 text-sm text-gray-400">
-          {filteredSettings.length} of {settings.length} settings
-        </div>
-
-        {/* Edit Dialog */}
-        {editingSetting && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-            <div className="bg-gray-800 rounded-lg p-6 w-[500px] max-w-full mx-4">
-              <h2 className="text-lg font-semibold mb-4">Edit Setting</h2>
-
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-1">Namespace</label>
-                <div className="text-white">{editingSetting.namespace}</div>
               </div>
-
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-1">Key</label>
-                <code className="text-blue-400">{editingSetting.key}</code>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm text-gray-400 mb-1">Current Value</label>
-                <code className="text-gray-300">{editingSetting.value || '(empty)'}</code>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm text-gray-400 mb-1">New Value</label>
-                <input
-                  type="text"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-700 rounded-md text-white"
-                  autoFocus
-                />
-              </div>
-
-              <div className="bg-yellow-900/20 border border-yellow-800 rounded-md p-3 mb-4">
-                <p className="text-yellow-400 text-sm">
-                  Changing this setting may affect device behavior. Proceed with caution.
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setEditingSetting(null)}>
-                  Cancel
-                </Button>
-                <Button onClick={saveSetting}>
-                  Save
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
-        )}
+
+        </div>
+
+        {/* Edit Modal */}
+        <AnimatePresence>
+          {editingSetting && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-card w-full max-w-md p-6 rounded-xl border border-border shadow-2xl m-4"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Edit Setting</h3>
+                  <button onClick={() => setEditingSetting(null)}><X className="w-5 h-5 text-muted-foreground hover:text-foreground" /></button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Namespace</label>
+                    <div className="text-sm font-medium">{editingSetting.namespace}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Key</label>
+                    <div className="text-sm font-mono text-primary break-all">{editingSetting.key}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5 block">Value</label>
+                    <textarea
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      className="w-full h-24 bg-muted/30 border border-border rounded-lg p-3 text-sm font-mono outline-none focus:border-primary/50 focus:bg-muted/50 transition-all resize-none"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="ghost" onClick={() => setEditingSetting(null)}>Cancel</Button>
+                    <Button variant="primary" icon={<Save className="w-4 h-4" />} onClick={handleSave}>Save Changes</Button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       </div>
     </PageLayout>
   );

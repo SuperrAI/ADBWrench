@@ -9,13 +9,15 @@ import { CoreColors, Neutral } from '@/design-system/foundations/colors';
 import { AppIcons, ICONS_PATH } from '@/design-system/foundations/icons';
 import { textStyles } from '@/design-system/foundations/typography';
 import { useLayout } from '@/context/layout-context';
+import { LucideIcon } from 'lucide-react';
 
 interface NavItem {
   href: string;
-  icon: string;
+  icon?: string;
   activeIcon?: string;
   title?: string;
   isLogo?: boolean;
+  lucideIcon?: LucideIcon;
 }
 
 interface SideNavProps {
@@ -48,6 +50,7 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
     const isActive = isItemActive(item);
     const isHovered = hoveredItem === item.href;
     const iconSrc = isActive && item.activeIcon ? item.activeIcon : item.icon;
+    const IconComponent = item.lucideIcon;
 
     if (item.isLogo) {
       return (
@@ -56,14 +59,16 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
           href={item.href}
           className="flex items-center justify-start w-full h-14 rounded-xl"
         >
-          <Image
-            src={iconSrc}
-            alt={item.title || 'Logo'}
-            width={48}
-            height={48}
-            className="object-contain"
-            style={{ filter: 'brightness(0)' }}
-          />
+          {iconSrc ? (
+            <Image
+              src={iconSrc}
+              alt={item.title || 'Logo'}
+              width={48}
+              height={48}
+              className="object-contain"
+              style={{ filter: 'brightness(0)' }}
+            />
+          ) : null}
         </Link>
       );
     }
@@ -73,38 +78,51 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
         key={item.href}
         href={item.href}
         className={cn(
-          'flex items-center h-12 rounded-xl transition-colors px-2 whitespace-nowrap',
-          isActive ? 'nav-item-active' : 'nav-item'
+          'flex items-center h-12 rounded-xl transition-all duration-200 px-2 whitespace-nowrap group',
+          isActive
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
         )}
         onMouseEnter={() => setHoveredItem(item.href)}
         onMouseLeave={() => setHoveredItem(null)}
       >
-        <div className="flex items-center justify-center w-12 min-w-12 relative">
-          <Image
-            src={iconSrc}
-            alt={item.title || 'Navigation icon'}
-            width={32}
-            height={32}
-            className="transition-all duration-200"
-            style={{
-              opacity: isActive || isHovered ? 1 : 0.6,
-            }}
-          />
+        <div className="flex items-center justify-center w-10 min-w-10 relative">
+          {IconComponent ? (
+            <IconComponent
+              className={cn(
+                "w-5 h-5 transition-all duration-200",
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )}
+              strokeWidth={isActive ? 2.5 : 2}
+            />
+          ) : iconSrc ? (
+            <Image
+              src={iconSrc}
+              alt={item.title || 'Navigation icon'}
+              width={24}
+              height={24}
+              className="transition-all duration-200"
+              style={{
+                opacity: isActive || isHovered ? 1 : 0.6,
+              }}
+            />
+          ) : null}
         </div>
 
         <div className="flex-1 w-full min-w-0">
           {item.title && showLabel && (
             <span
-              className="ml-4 transition-all duration-200 ease-in-out block rounded-lg"
+              className={cn(
+                "ml-3 transition-all duration-200 ease-in-out block rounded-lg text-sm font-medium",
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )}
               style={{
-                ...textStyles.body1Med,
-                color: isActive || isHovered ? CoreColors.Black : Neutral.N400,
                 opacity: isExpanded ? 1 : 0,
                 transform: isExpanded ? 'translateX(0)' : 'translateX(-10px)',
                 width: isExpanded ? 'auto' : '0',
                 visibility: isExpanded ? 'visible' : 'hidden',
                 whiteSpace: 'nowrap',
-                backgroundColor: isExpanded ? Neutral.N50 : 'transparent',
+                backgroundColor: isExpanded ? 'hsl(var(--muted))' : 'transparent',
                 padding: isExpanded ? '4px 12px' : '0px',
               }}
             >

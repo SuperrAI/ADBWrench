@@ -6,85 +6,41 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useDevice } from '@/context/device-context';
 import { Button } from '@/design-system/components/Button';
 import { shellStream } from '@/services/adb';
-import { textStyles } from '@/design-system/foundations/typography';
 import { cn } from '@/lib/utils';
+import {
+  Play,
+  Square,
+  Trash2,
+  Download,
+  Search,
+  Filter,
+  Clock,
+  AlignLeft,
+  FileText,
+  Pause
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Log levels with colors
+// --- Constants ---
 const LOG_LEVELS = {
-  V: { name: 'Verbose', color: 'text-neutral-400', bg: 'bg-neutral-800' },
-  D: { name: 'Debug', color: 'text-blue-400', bg: 'bg-blue-900/30' },
-  I: { name: 'Info', color: 'text-green-400', bg: 'bg-green-900/30' },
-  W: { name: 'Warn', color: 'text-amber-400', bg: 'bg-amber-900/30' },
-  E: { name: 'Error', color: 'text-red-400', bg: 'bg-red-900/30' },
-  F: { name: 'Fatal', color: 'text-red-600', bg: 'bg-red-900/50' },
+  V: { name: 'Verbose', color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
+  D: { name: 'Debug', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  I: { name: 'Info', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  W: { name: 'Warn', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  E: { name: 'Error', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+  F: { name: 'Fatal', color: 'text-red-500', bg: 'bg-red-500/20', border: 'border-red-500/40' },
 } as const;
 
 type LogLevel = keyof typeof LOG_LEVELS;
 
-// Buffer options
 const BUFFERS = [
   { value: 'main', label: 'Main' },
   { value: 'system', label: 'System' },
   { value: 'crash', label: 'Crash' },
   { value: 'events', label: 'Events' },
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'All Buffers' },
 ];
 
-// Max buffer sizes
-const MAX_BUFFER_OPTIONS = [
-  { value: 1000, label: '1,000' },
-  { value: 5000, label: '5,000' },
-  { value: 10000, label: '10,000' },
-  { value: 25000, label: '25,000' },
-  { value: 50000, label: '50,000' },
-];
-
-// Icons
-const PlayIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 3L13 8L4 13V3Z" fill="currentColor" />
-  </svg>
-);
-
-const StopIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="3" width="10" height="10" rx="1" fill="currentColor" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2 4H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <path d="M5 4V3C5 2.44772 5.44772 2 6 2H10C10.5523 2 11 2.44772 11 3V4" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M3 4L4 13C4 13.5523 4.44772 14 5 14H11C11.5523 14 12 13.5523 12 13L13 4" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
-
-const DownloadIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 2V10M8 10L5 7M8 10L11 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M2 12V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-const ScrollIcon = ({ locked }: { locked: boolean }) => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    {locked ? (
-      <path d="M8 2V14M8 14L4 10M8 14L12 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    ) : (
-      <path d="M4 6H12M4 10H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    )}
-  </svg>
-);
-
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="7" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M10 10L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
-
-// Parsed log entry
 interface LogEntry {
   id: string;
   raw: string;
@@ -96,13 +52,10 @@ interface LogEntry {
   message: string;
 }
 
-// Parse logcat line
 // Format: MM-DD HH:MM:SS.mmm PID TID LEVEL TAG: MESSAGE
-// Or: LEVEL/TAG(PID): MESSAGE (brief format)
 function parseLogLine(line: string, id: string): LogEntry | null {
   if (!line.trim()) return null;
 
-  // Try threadtime format: MM-DD HH:MM:SS.mmm PID TID LEVEL TAG: MESSAGE
   const threadtimeMatch = line.match(
     /^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(\S+)\s*:\s*(.*)$/
   );
@@ -119,7 +72,7 @@ function parseLogLine(line: string, id: string): LogEntry | null {
     };
   }
 
-  // Try brief format: LEVEL/TAG(PID): MESSAGE
+  // Brief format fallback
   const briefMatch = line.match(/^([VDIWEF])\/(\S+)\s*\(\s*(\d+)\):\s*(.*)$/);
   if (briefMatch) {
     return {
@@ -132,25 +85,12 @@ function parseLogLine(line: string, id: string): LogEntry | null {
     };
   }
 
-  // Try simple format: LEVEL TAG: MESSAGE
-  const simpleMatch = line.match(/^([VDIWEF])\s+(\S+)\s*:\s*(.*)$/);
-  if (simpleMatch) {
-    return {
-      id,
-      raw: line,
-      level: simpleMatch[1] as LogLevel,
-      tag: simpleMatch[2],
-      message: simpleMatch[3],
-    };
-  }
-
-  // Fallback: treat as info message
   return {
     id,
     raw: line,
-    level: 'I',
-    tag: 'unknown',
-    message: line,
+    level: line.includes(' E ') ? 'E' : 'I', // Rough heuristic
+    tag: '<unknown>',
+    message: line
   };
 }
 
@@ -161,393 +101,255 @@ export default function LogcatPage() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [showTimestamp, setShowTimestamp] = useState(true);
   const [buffer, setBuffer] = useState('main');
-  const [maxBuffer, setMaxBuffer] = useState(10000);
+  const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState<LogLevel[]>(['V', 'D', 'I', 'W', 'E', 'F']);
   const [tagFilter, setTagFilter] = useState('');
-  const [tagExclude, setTagExclude] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
 
   const logsRef = useRef<HTMLDivElement>(null);
   const stopFnRef = useRef<(() => void) | null>(null);
   const logIdRef = useRef(0);
 
-  // Scroll to bottom
-  const scrollToBottom = useCallback(() => {
-    if (logsRef.current && autoScroll) {
+  // Auto-scroll logic
+  useEffect(() => {
+    if (autoScroll && logsRef.current) {
       logsRef.current.scrollTop = logsRef.current.scrollHeight;
     }
-  }, [autoScroll]);
+  }, [logs, autoScroll]);
 
-  // Add log entries
-  const addLogs = useCallback((text: string) => {
-    const lines = text.split('\n');
-    const newEntries: LogEntry[] = [];
-
-    for (const line of lines) {
-      const entry = parseLogLine(line, `log-${logIdRef.current++}`);
-      if (entry) {
-        newEntries.push(entry);
-      }
-    }
-
-    if (newEntries.length > 0) {
-      setLogs((prev) => {
-        const combined = [...prev, ...newEntries];
-        // Prune to max buffer size
-        if (combined.length > maxBuffer) {
-          return combined.slice(-maxBuffer);
-        }
-        return combined;
-      });
-      requestAnimationFrame(scrollToBottom);
-    }
-  }, [maxBuffer, scrollToBottom]);
-
-  // Start streaming
+  // Command Stream Handler
   const startStreaming = useCallback(async () => {
     if (connectionState !== 'connected') return;
-
     setIsStreaming(true);
+    setLogs([]); // Clear on start prefers a fresh session usually
 
     try {
       const bufferArg = buffer === 'all' ? '' : `-b ${buffer}`;
-      const command = `logcat -v threadtime ${bufferArg}`;
-
       const { exit } = await shellStream(
-        command,
-        (data) => addLogs(data),
-        (data) => addLogs(data)
+        `logcat -v threadtime ${bufferArg}`,
+        (data) => {
+          const lines = data.split('\n');
+          const newEntries = lines
+            .map(line => parseLogLine(line, `log-${logIdRef.current++}`))
+            .filter(Boolean) as LogEntry[];
+
+          setLogs(prev => {
+            const updated = [...prev, ...newEntries];
+            return updated.slice(-5000); // Keep last 5000 lines
+          });
+        },
+        () => { } // Ignore stderr for now
       );
       stopFnRef.current = exit;
-    } catch (err) {
-      console.error('Failed to start logcat:', err);
+    } catch (e) {
       setIsStreaming(false);
     }
-  }, [connectionState, buffer, addLogs]);
+  }, [connectionState, buffer]);
 
-  // Stop streaming
-  const stopStreaming = useCallback(() => {
-    if (stopFnRef.current) {
-      stopFnRef.current();
-      stopFnRef.current = null;
-    }
+  const stopStreaming = () => {
+    stopFnRef.current?.();
     setIsStreaming(false);
-  }, []);
+  };
 
-  // Clear logs
-  const clearLogs = useCallback(() => {
-    setLogs([]);
-  }, []);
+  const clearLogs = () => setLogs([]);
 
-  // Export logs
-  const exportLogs = useCallback(() => {
-    const text = filteredLogs
-      .map((log) => log.raw)
-      .join('\n');
-
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `logcat-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, []);
-
-  // Toggle level filter
-  const toggleLevel = useCallback((level: LogLevel) => {
-    setLevelFilter((prev) => {
-      if (prev.includes(level)) {
-        return prev.filter((l) => l !== level);
-      }
-      return [...prev, level];
-    });
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (stopFnRef.current) {
-        stopFnRef.current();
-      }
-    };
-  }, []);
-
-  // Filter logs
   const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      // Level filter
+    return logs.filter(log => {
       if (!levelFilter.includes(log.level)) return false;
-
-      // Tag include filter
-      if (tagFilter) {
-        const tags = tagFilter.split(',').map((t) => t.trim().toLowerCase());
-        if (!tags.some((t) => log.tag.toLowerCase().includes(t))) return false;
-      }
-
-      // Tag exclude filter
-      if (tagExclude) {
-        const tags = tagExclude.split(',').map((t) => t.trim().toLowerCase());
-        if (tags.some((t) => log.tag.toLowerCase().includes(t))) return false;
-      }
-
-      // Search query
+      if (tagFilter && !log.tag.toLowerCase().includes(tagFilter.toLowerCase())) return false;
       if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        if (
-          !log.message.toLowerCase().includes(query) &&
-          !log.tag.toLowerCase().includes(query)
-        ) {
-          return false;
-        }
+        const q = searchQuery.toLowerCase();
+        return log.message.toLowerCase().includes(q) || log.tag.toLowerCase().includes(q);
       }
-
       return true;
     });
-  }, [logs, levelFilter, tagFilter, tagExclude, searchQuery]);
+  }, [logs, levelFilter, tagFilter, searchQuery]);
 
-  // Highlight search matches
-  const highlightText = useCallback((text: string): React.ReactNode => {
-    if (!searchQuery) return text;
-
-    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const parts = text.split(regex);
-
-    return parts.map((part, i) =>
-      regex.test(part) ? (
-        <mark key={i} className="bg-yellow-500/50 text-yellow-200 rounded px-0.5">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
-  }, [searchQuery]);
+  // Clean up
+  useEffect(() => () => stopStreaming(), []);
 
   if (connectionState !== 'connected') {
     return (
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8">
           <EmptyState
-            title="No Device Connected"
-            description="Connect an Android device via USB to view logcat."
+            title="Logcat Disconnected"
+            description="Connect an Android device to start streaming logs."
+            icon={<FileText className="w-16 h-16 text-muted-foreground/30" />}
           />
         </div>
       </PageLayout>
     );
   }
 
+  // Helper to toggle log level
+  const toggleLevel = (l: LogLevel) => {
+    setLevelFilter(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
+  };
+
   return (
     <PageLayout>
-      <div className="h-full flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
-          <div className="flex items-center gap-4">
-            <h1 style={{ ...textStyles.h4 }} className="text-foreground">
-              Logcat
-            </h1>
-            <span className="text-xs text-muted-foreground">
-              {filteredLogs.length.toLocaleString()} / {logs.length.toLocaleString()} entries
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Buffer selector */}
-            <select
-              value={buffer}
-              onChange={(e) => setBuffer(e.target.value)}
-              disabled={isStreaming}
-              className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
-            >
-              {BUFFERS.map((b) => (
-                <option key={b.value} value={b.value}>{b.label}</option>
-              ))}
-            </select>
+      <div className="h-full flex flex-col bg-background overflow-hidden font-sans">
 
-            {/* Max buffer */}
-            <select
-              value={maxBuffer}
-              onChange={(e) => setMaxBuffer(Number(e.target.value))}
-              className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
-            >
-              {MAX_BUFFER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label} max</option>
-              ))}
-            </select>
+        {/* Top Control Bar */}
+        <div className="flex flex-col border-b border-border/60 bg-card/50 backdrop-blur-md z-10">
 
-            {/* Timestamp toggle */}
-            <button
-              onClick={() => setShowTimestamp(!showTimestamp)}
-              className={cn(
-                'text-xs px-2 py-1 rounded border',
-                showTimestamp
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground'
-              )}
-            >
-              Time
-            </button>
+          {/* Row 1: Main Controls */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                <AlignLeft className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-sm font-bold text-foreground">Logcat</h1>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{filteredLogs.length} events</span>
+                  <span className="w-1 h-1 bg-muted-foreground/50 rounded-full" />
+                  <span>{buffer}</span>
+                </div>
+              </div>
+            </div>
 
-            {/* Auto-scroll toggle */}
-            <Button
-              variant={autoScroll ? 'secondary' : 'ghost'}
-              size="small"
-              icon={<ScrollIcon locked={autoScroll} />}
-              onClick={() => setAutoScroll(!autoScroll)}
-            >
-              {autoScroll ? 'Auto' : 'Scroll'}
-            </Button>
-
-            {/* Start/Stop */}
-            {isStreaming ? (
-              <Button variant="primary" size="small" icon={<StopIcon />} onClick={stopStreaming}>
-                Stop
-              </Button>
-            ) : (
-              <Button variant="primary" size="small" icon={<PlayIcon />} onClick={startStreaming}>
-                Start
-              </Button>
-            )}
-
-            {/* Clear */}
-            <Button
-              variant="ghost"
-              size="small"
-              icon={<TrashIcon />}
-              onClick={clearLogs}
-              disabled={logs.length === 0}
-            >
-              Clear
-            </Button>
-
-            {/* Export */}
-            <Button
-              variant="ghost"
-              size="small"
-              icon={<DownloadIcon />}
-              onClick={exportLogs}
-              disabled={filteredLogs.length === 0}
-            >
-              Export
-            </Button>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="px-6 py-2 border-b border-border shrink-0 flex flex-wrap items-center gap-3">
-          {/* Level filters */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground mr-1">Level:</span>
-            {(Object.keys(LOG_LEVELS) as LogLevel[]).map((level) => (
-              <button
-                key={level}
-                onClick={() => toggleLevel(level)}
-                className={cn(
-                  'text-xs px-1.5 py-0.5 rounded font-mono',
-                  levelFilter.includes(level)
-                    ? `${LOG_LEVELS[level].color} ${LOG_LEVELS[level].bg}`
-                    : 'text-muted-foreground bg-muted/30'
-                )}
+            <div className="flex items-center gap-2">
+              <select
+                value={buffer}
+                onChange={(e) => setBuffer(e.target.value)}
+                disabled={isStreaming}
+                className="bg-transparent border border-border rounded-md px-2 py-1.5 text-xs font-medium outline-none hover:bg-muted/50 transition-colors"
               >
-                {level}
-              </button>
-            ))}
+                {BUFFERS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+              </select>
+
+              <div className="h-6 w-px bg-border mx-1" />
+
+              <Button
+                variant={autoScroll ? "secondary" : "ghost"}
+                size="small"
+                onClick={() => setAutoScroll(!autoScroll)}
+                icon={<Clock className={cn("w-3.5 h-3.5", autoScroll && "text-primary")} />}
+              >
+                Auto-scroll
+              </Button>
+
+              {isStreaming ? (
+                <Button variant="warning" size="small" onClick={stopStreaming} icon={<Square className="w-3 h-3 fill-current" />}>
+                  Stop
+                </Button>
+              ) : (
+                <Button variant="primary" size="small" onClick={startStreaming} icon={<Play className="w-3 h-3 fill-current" />}>
+                  Start
+                </Button>
+              )}
+
+              <Button variant="ghost" size="small" onClick={clearLogs} icon={<Trash2 className="w-4 h-4" />} />
+            </div>
           </div>
 
-          {/* Tag filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-muted-foreground">Tag:</span>
-            <input
-              type="text"
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-              placeholder="Include..."
-              className="text-xs bg-background border border-border rounded px-2 py-1 w-24 text-foreground"
-            />
-            <input
-              type="text"
-              value={tagExclude}
-              onChange={(e) => setTagExclude(e.target.value)}
-              placeholder="Exclude..."
-              className="text-xs bg-background border border-border rounded px-2 py-1 w-24 text-foreground"
-            />
-          </div>
+          {/* Row 2: Filters */}
+          <div className="px-4 py-2 bg-muted/20 border-t border-border/40 flex items-center gap-4 overflow-x-auto scrollbar-hide">
+            {/* Search */}
+            <div className="relative flex items-center group">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter logs..."
+                className="bg-background border border-border rounded-md pl-8 pr-3 py-1 text-xs w-48 focus:w-64 transition-all outline-none focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
 
-          {/* Search */}
-          <div className="flex items-center gap-1 flex-1 max-w-xs">
-            <SearchIcon />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search logs..."
-              className="text-xs bg-background border border-border rounded px-2 py-1 flex-1 text-foreground"
-            />
+            {/* Tag Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                placeholder="Tag..."
+                className="bg-transparent border-b border-border hover:border-primary/50 focus:border-primary px-1 py-0.5 text-xs outline-none w-24 transition-colors"
+              />
+            </div>
+
+            <div className="h-4 w-px bg-border mx-2" />
+
+            {/* Level Toggles */}
+            <div className="flex items-center gap-1">
+              {(Object.keys(LOG_LEVELS) as LogLevel[]).map(level => (
+                <button
+                  key={level}
+                  onClick={() => toggleLevel(level)}
+                  className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-bold border transition-all",
+                    levelFilter.includes(level)
+                      ? `${LOG_LEVELS[level].bg} ${LOG_LEVELS[level].color} ${LOG_LEVELS[level].border}`
+                      : "bg-transparent text-muted-foreground border-transparent hover:bg-muted"
+                  )}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Log output */}
+        {/* Logs Virtual List Replacement (Native Scroll) */}
         <div
           ref={logsRef}
-          className="flex-1 overflow-auto bg-neutral-950 font-mono text-xs"
+          className="flex-1 overflow-y-auto bg-[#0F0F11] font-mono text-[11px] leading-relaxed scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
         >
           {filteredLogs.length === 0 ? (
-            <div className="text-neutral-500 text-center py-8">
-              {logs.length === 0 ? (
-                <>
-                  <p>No logs yet. Click Start to begin streaming.</p>
-                  <p className="text-xs mt-2">
-                    Select a buffer and configure filters above.
-                  </p>
-                </>
-              ) : (
-                <p>No logs match the current filters.</p>
-              )}
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30">
+              <FileText className="w-12 h-12 mb-2 opacity-20" />
+              <p>No matching logs</p>
             </div>
           ) : (
-            <div className="p-2">
+            <div className="w-full">
               {filteredLogs.map((log) => (
                 <div
                   key={log.id}
                   className={cn(
-                    'flex gap-2 py-0.5 hover:bg-white/5',
-                    LOG_LEVELS[log.level].color
+                    "flex items-start gap-3 px-4 py-[2px] hover:bg-white/5 transition-colors border-l-2",
+                    LOG_LEVELS[log.level].color,
+                    `border-${LOG_LEVELS[log.level].color.split('-')[1]}-500/50` // Dynamic border color matching level
                   )}
                 >
-                  {showTimestamp && log.timestamp && (
-                    <span className="text-neutral-500 shrink-0 w-[120px]">
-                      {log.timestamp}
-                    </span>
+                  {showTimestamp && (
+                    <span className="shrink-0 text-muted-foreground/50 w-24 select-none">{log.timestamp?.split(' ')[1] || '--:--:--'}</span>
                   )}
-                  <span className={cn('shrink-0 w-4 font-bold', LOG_LEVELS[log.level].color)}>
+                  <span className={cn("shrink-0 font-bold w-3 text-center select-none", LOG_LEVELS[log.level].color)}>
                     {log.level}
                   </span>
-                  <span className="text-cyan-400 shrink-0 w-[140px] truncate" title={log.tag}>
-                    {highlightText(log.tag)}
+                  <span className="shrink-0 w-32 truncate text-foreground/80 font-semibold" title={log.tag}>
+                    {log.tag}
                   </span>
-                  <span className="flex-1 break-all">
-                    {highlightText(log.message)}
+                  <span className="flex-1 text-foreground/70 break-all whitespace-pre-wrap">
+                    {log.message}
                   </span>
                 </div>
               ))}
+              {/* Anchor for auto-scroll */}
+              <div className="h-px" />
             </div>
           )}
         </div>
 
-        {/* Status bar */}
-        <div className="px-4 py-2 border-t border-border bg-background text-xs text-muted-foreground flex items-center justify-between shrink-0">
-          <span>
-            {isStreaming ? (
-              <span className="text-green-500">● Streaming from {buffer} buffer</span>
-            ) : (
-              <span>Stopped</span>
-            )}
-          </span>
-          <span>
-            Buffer: {logs.length.toLocaleString()} / {maxBuffer.toLocaleString()}
-          </span>
-        </div>
+        {/* Streaming Status Footer */}
+        {isStreaming && (
+          <div className="absolute bottom-4 right-6 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full shadow-lg flex items-center gap-2"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+              </span>
+              LIVE
+            </motion.div>
+          </div>
+        )}
+
       </div>
     </PageLayout>
   );

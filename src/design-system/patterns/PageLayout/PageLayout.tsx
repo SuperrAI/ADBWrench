@@ -8,73 +8,75 @@ import { useLayout } from '@/context/layout-context';
 import { Header } from '@/design-system/patterns/Header';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TopBar } from '@/components/ui/TopBar';
+import {
+  LayoutDashboard,
+  Terminal,
+  ScrollText,
+  Camera,
+  Package,
+  SlidersHorizontal,
+  FolderOpen,
+  Activity,
+  Bug,
+  Settings
+} from 'lucide-react';
 
 interface PageLayoutProps {
   children: React.ReactNode;
   headerProps?: React.ComponentProps<typeof Header>;
 }
 
-// Default navigation items for the app
+// Default navigation items for the app with Lucide icons
 const defaultNavItems = [
   {
     href: '/dashboard',
-    icon: '/assets/icons/nav_feed.svg',
-    activeIcon: '/assets/icons/nav_feed_fill.svg',
     title: 'Dashboard',
+    lucideIcon: LayoutDashboard,
   },
   {
     href: '/shell',
-    icon: '/assets/icons/nav_assignment.svg',
-    activeIcon: '/assets/icons/nav_assignment_fill.svg',
     title: 'Shell',
+    lucideIcon: Terminal,
   },
   {
     href: '/logcat',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Logcat',
+    lucideIcon: ScrollText,
   },
   {
     href: '/screenshot',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Screenshot',
+    lucideIcon: Camera,
   },
   {
     href: '/apps',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Apps',
+    lucideIcon: Package,
   },
   {
     href: '/controls',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Controls',
+    lucideIcon: SlidersHorizontal,
   },
   {
     href: '/files',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Files',
+    lucideIcon: FolderOpen,
   },
   {
     href: '/performance',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Performance',
+    lucideIcon: Activity,
   },
   {
     href: '/bugreport',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Bugreport',
+    lucideIcon: Bug,
   },
   {
     href: '/settings',
-    icon: '/assets/icons/nav_files.svg',
-    activeIcon: '/assets/icons/nav_files_fill.svg',
     title: 'Settings',
+    lucideIcon: Settings,
   },
 ];
 

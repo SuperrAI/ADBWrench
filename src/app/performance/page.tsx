@@ -1,375 +1,162 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import PageLayout from '@/design-system/patterns/PageLayout/PageLayout';
+import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/design-system/components/Button';
 import { shell } from '@/services/adb';
 import { toast } from 'sonner';
+import {
+  Activity,
+  Cpu,
+  Zap,
+  Thermometer,
+  Play,
+  Square,
+  Download,
+  Server,
+  Microchip
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 
-interface CpuData {
-  timestamp: number;
-  usage: number;
-}
-
-interface MemoryData {
-  timestamp: number;
-  total: number;
-  used: number;
-  available: number;
-}
-
-interface ProcessInfo {
-  pid: string;
-  user: string;
-  cpu: number;
-  mem: number;
-  name: string;
-}
-
-interface BatteryInfo {
-  level: number;
-  temperature: number;
-  voltage: number;
-  status: string;
-}
-
-const REFRESH_RATES = [
-  { label: '1s', value: 1000 },
-  { label: '2s', value: 2000 },
-  { label: '5s', value: 5000 },
-];
+interface CpuData { timestamp: number; usage: number; }
+interface MemoryData { timestamp: number; total: number; used: number; available: number; }
+interface ProcessInfo { pid: string; user: string; cpu: number; mem: number; name: string; }
+interface BatteryInfo { level: number; temperature: number; voltage: number; status: string; }
 
 const MAX_DATA_POINTS = 60;
 
 export default function PerformancePage() {
   const { connectionState } = useDevice();
-  const isConnected = connectionState === 'connected';
-
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [refreshRate, setRefreshRate] = useState(2000);
   const [cpuHistory, setCpuHistory] = useState<CpuData[]>([]);
   const [memoryHistory, setMemoryHistory] = useState<MemoryData[]>([]);
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
   const [battery, setBattery] = useState<BatteryInfo | null>(null);
-  const [previousBatteryLevel, setPreviousBatteryLevel] = useState<number | null>(null);
-  const [drainRate, setDrainRate] = useState<number | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastBatteryCheckRef = useRef<number>(Date.now());
 
-  // Parse CPU usage from /proc/stat
   const parseCpuUsage = useCallback(async (): Promise<number> => {
     try {
       const output = await shell('cat /proc/stat | head -1');
       const parts = output.trim().split(/\s+/);
       if (parts[0] !== 'cpu') return 0;
-
-      const user = parseInt(parts[1], 10) || 0;
-      const nice = parseInt(parts[2], 10) || 0;
-      const system = parseInt(parts[3], 10) || 0;
-      const idle = parseInt(parts[4], 10) || 0;
-      const iowait = parseInt(parts[5], 10) || 0;
-      const irq = parseInt(parts[6], 10) || 0;
-      const softirq = parseInt(parts[7], 10) || 0;
-
-      const total = user + nice + system + idle + iowait + irq + softirq;
-      const active = total - idle - iowait;
-
-      // This gives instant usage, not delta-based
-      return Math.round((active / total) * 100);
-    } catch {
-      return 0;
-    }
+      const total = parts.slice(1).map(Number).reduce((a, b) => a + b, 0);
+      const idle = Number(parts[4]);
+      // Note: This is a simplistic instantaneous calculation. 
+      // Ideally should be diff from previous sample. 
+      // For now, simpler approximation or 0-100 logic requires state.
+      // Let's rely on simple `top -n 1` summary for cleaner % if needed, or stick to this.
+      // Actually, standard linux calculation requires 2 samples. 
+      // Let's use `dumpsys cpuinfo` or just parsed `top` header for easier real-time avg.
+      // Fallback: Use `top` header line if available (simpler for single call)
+      const topHeader = await shell('top -n 1 -b -m 1 | head -5');
+      const match = topHeader.match(/User\s+(\d+)%.*System\s+(\d+)%/i) || topHeader.match(/(\d+)%\s+user.*(\d+)%\s+sys/i);
+      if (match) return Math.min(100, Number(match[1]) + Number(match[2]));
+      return 0; // Fallback
+    } catch { return 0; }
   }, []);
 
-  // Parse memory info from /proc/meminfo
-  const parseMemoryInfo = useCallback(async (): Promise<{ total: number; used: number; available: number }> => {
+  const parseMemory = useCallback(async () => {
     try {
       const output = await shell('cat /proc/meminfo');
-      const lines = output.split('\n');
-
-      let total = 0;
-      let available = 0;
-      let free = 0;
-      let buffers = 0;
-      let cached = 0;
-
-      for (const line of lines) {
-        const match = line.match(/^(\w+):\s+(\d+)/);
-        if (match) {
-          const key = match[1];
-          const value = parseInt(match[2], 10) * 1024; // Convert from KB to bytes
-          if (key === 'MemTotal') total = value;
-          if (key === 'MemAvailable') available = value;
-          if (key === 'MemFree') free = value;
-          if (key === 'Buffers') buffers = value;
-          if (key === 'Cached') cached = value;
-        }
-      }
-
-      // If MemAvailable not present (older Android), calculate it
-      if (available === 0) {
-        available = free + buffers + cached;
-      }
-
-      return {
-        total,
-        available,
-        used: total - available,
+      const getVal = (key: string) => {
+        const m = output.match(new RegExp(`${key}:\\s+(\\d+)`));
+        return m ? parseInt(m[1], 10) * 1024 : 0;
       };
-    } catch {
-      return { total: 0, used: 0, available: 0 };
-    }
+      const total = getVal('MemTotal');
+      const available = getVal('MemAvailable') || (getVal('MemFree') + getVal('Buffers') + getVal('Cached'));
+      return { total, available, used: total - available };
+    } catch { return { total: 0, used: 0, available: 0 }; }
   }, []);
 
-  // Parse top processes
-  const parseProcesses = useCallback(async (): Promise<ProcessInfo[]> => {
-    try {
-      const output = await shell('top -n 1 -b | head -20');
-      const lines = output.split('\n');
-      const procs: ProcessInfo[] = [];
-
-      // Find the header line to determine column positions
-      let headerIndex = -1;
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes('PID') && (lines[i].includes('CPU') || lines[i].includes('%CPU'))) {
-          headerIndex = i;
-          break;
-        }
-      }
-
-      if (headerIndex === -1) return [];
-
-      // Parse data lines after header
-      for (let i = headerIndex + 1; i < lines.length && procs.length < 10; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        const parts = line.split(/\s+/);
-        if (parts.length < 9) continue;
-
-        // Format varies by Android version, try common formats
-        // PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ ARGS
-        const pid = parts[0];
-        const user = parts[1];
-        const cpuStr = parts.find((p) => p.includes('%') || /^\d+\.?\d*$/.test(p));
-        let cpu = 0;
-        let mem = 0;
-
-        // Try to find CPU and MEM columns
-        for (let j = 0; j < parts.length; j++) {
-          const val = parseFloat(parts[j]);
-          if (!isNaN(val) && val >= 0 && val <= 100) {
-            if (cpu === 0) cpu = val;
-            else if (mem === 0) {
-              mem = val;
-              break;
-            }
-          }
-        }
-
-        const name = parts[parts.length - 1];
-
-        if (pid && name) {
-          procs.push({ pid, user, cpu, mem, name });
-        }
-      }
-
-      return procs.sort((a, b) => b.cpu - a.cpu);
-    } catch {
-      return [];
-    }
-  }, []);
-
-  // Parse battery info
-  const parseBatteryInfo = useCallback(async (): Promise<BatteryInfo | null> => {
+  const parseBattery = useCallback(async (): Promise<BatteryInfo | null> => {
     try {
       const output = await shell('dumpsys battery');
-      const info: BatteryInfo = {
-        level: 0,
-        temperature: 0,
-        voltage: 0,
-        status: 'Unknown',
+      const getVal = (regex: RegExp) => parseInt(output.match(regex)?.[1] || '0', 10);
+      return {
+        level: getVal(/level:\s*(\d+)/),
+        temperature: getVal(/temperature:\s*(\d+)/) / 10,
+        voltage: getVal(/voltage:\s*(\d+)/) / 1000,
+        status: output.match(/status:\s*(\d+)/)?.[1] === '2' ? 'Charging' : 'Discharging' // 2 is typically charging constant
       };
-
-      const levelMatch = output.match(/level:\s*(\d+)/);
-      if (levelMatch) info.level = parseInt(levelMatch[1], 10);
-
-      const tempMatch = output.match(/temperature:\s*(\d+)/);
-      if (tempMatch) info.temperature = parseInt(tempMatch[1], 10) / 10; // Convert to Celsius
-
-      const voltageMatch = output.match(/voltage:\s*(\d+)/);
-      if (voltageMatch) info.voltage = parseInt(voltageMatch[1], 10) / 1000; // Convert to V
-
-      const statusMatch = output.match(/status:\s*(\d+)/);
-      if (statusMatch) {
-        const statusCode = parseInt(statusMatch[1], 10);
-        const statuses = ['Unknown', 'Unknown', 'Charging', 'Discharging', 'Not charging', 'Full'];
-        info.status = statuses[statusCode] || 'Unknown';
-      }
-
-      return info;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }, []);
 
-  // Collect all metrics
-  const collectMetrics = useCallback(async () => {
+  const parseProcesses = useCallback(async (): Promise<ProcessInfo[]> => {
+    try {
+      const output = await shell('top -n 1 -b -m 10'); // Max 10 sorted by CPU usually
+      // Start lines after header (usually look for PID)
+      const lines = output.split('\n');
+      const headerIdx = lines.findIndex(l => l.includes('PID'));
+      if (headerIdx === -1) return [];
+
+      return lines.slice(headerIdx + 1, headerIdx + 11).map(line => {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length < 9) return null;
+        // Heuristic mapping - may vary by android version
+        // PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ ARGS
+        const cpuIdx = parts.findIndex(p => p.includes('%') && !p.includes('CPU')) !== -1
+          ? parts.findIndex(p => p.includes('%')) // first % col usually CPU
+          : 8; // default fallback
+
+        return {
+          pid: parts[0],
+          user: parts[1],
+          cpu: parseFloat(parts[cpuIdx] || '0'),
+          mem: parseFloat(parts[cpuIdx + 1] || '0'),
+          name: parts[parts.length - 1]
+        };
+      }).filter(Boolean) as ProcessInfo[];
+    } catch { return []; }
+  }, []);
+
+  const collect = useCallback(async () => {
     const timestamp = Date.now();
+    const [cpu, mem, batt, procs] = await Promise.all([parseCpuUsage(), parseMemory(), parseBattery(), parseProcesses()]);
 
-    const [cpuUsage, memInfo, procs, batteryInfo] = await Promise.all([
-      parseCpuUsage(),
-      parseMemoryInfo(),
-      parseProcesses(),
-      parseBatteryInfo(),
-    ]);
-
-    setCpuHistory((prev) => {
-      const newData = [...prev, { timestamp, usage: cpuUsage }];
-      return newData.slice(-MAX_DATA_POINTS);
-    });
-
-    setMemoryHistory((prev) => {
-      const newData = [...prev, { timestamp, ...memInfo }];
-      return newData.slice(-MAX_DATA_POINTS);
-    });
-
+    setCpuHistory(prev => [...prev.slice(-MAX_DATA_POINTS), { timestamp, usage: cpu }]);
+    setMemoryHistory(prev => [...prev.slice(-MAX_DATA_POINTS), { timestamp, ...mem }]);
+    setBattery(batt);
     setProcesses(procs);
+  }, [parseCpuUsage, parseMemory, parseBattery, parseProcesses]);
 
-    if (batteryInfo) {
-      setBattery(batteryInfo);
-
-      // Calculate drain rate
-      if (previousBatteryLevel !== null && batteryInfo.status === 'Discharging') {
-        const timeDiff = (timestamp - lastBatteryCheckRef.current) / 1000 / 3600; // hours
-        if (timeDiff > 0) {
-          const levelDiff = previousBatteryLevel - batteryInfo.level;
-          if (levelDiff > 0) {
-            setDrainRate(Math.round(levelDiff / timeDiff * 10) / 10); // %/hour
-          }
-        }
-      }
-
-      setPreviousBatteryLevel(batteryInfo.level);
-      lastBatteryCheckRef.current = timestamp;
-    }
-  }, [parseCpuUsage, parseMemoryInfo, parseProcesses, parseBatteryInfo, previousBatteryLevel]);
-
-  // Start/stop monitoring
   useEffect(() => {
-    if (isMonitoring && isConnected) {
-      collectMetrics(); // Initial collection
-      intervalRef.current = setInterval(collectMetrics, refreshRate);
+    if (isMonitoring && connectionState === 'connected') {
+      collect();
+      intervalRef.current = setInterval(collect, refreshRate);
     } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isMonitoring, connectionState, refreshRate, collect]);
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isMonitoring, isConnected, refreshRate, collectMetrics]);
-
-  // Format bytes to human readable
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+  const formatBytes = (b: number) => {
+    if (!b) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
+    const i = Math.floor(Math.log(b) / Math.log(1024));
+    return `${(b / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
   };
 
-  // Export snapshot
-  const exportSnapshot = () => {
-    const snapshot = {
-      timestamp: new Date().toISOString(),
-      cpu: cpuHistory.slice(-1)[0]?.usage || 0,
-      memory: memoryHistory.slice(-1)[0] || { total: 0, used: 0, available: 0 },
-      battery,
-      drainRate,
-      topProcesses: processes,
-    };
-
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `performance-snapshot-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success('Snapshot exported');
-  };
-
-  // Simple line graph component
-  const Graph = ({ data, maxValue, color, label }: { data: number[]; maxValue: number; color: string; label: string }) => {
-    const width = 400;
-    const height = 100;
-    const padding = 20;
-
-    if (data.length < 2) {
-      return (
-        <div className="bg-gray-800 rounded-md p-4" style={{ width, height: height + 40 }}>
-          <div className="text-sm text-gray-400 mb-2">{label}</div>
-          <div className="flex items-center justify-center h-full text-gray-500">Collecting data...</div>
-        </div>
-      );
-    }
-
-    const points = data.map((value, index) => {
-      const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
-      const y = height - padding - (value / maxValue) * (height - 2 * padding);
-      return `${x},${y}`;
-    }).join(' ');
-
-    const currentValue = data[data.length - 1];
-
-    return (
-      <div className="bg-gray-800 rounded-md p-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-400">{label}</span>
-          <span className="text-lg font-mono" style={{ color }}>{currentValue.toFixed(1)}%</span>
-        </div>
-        <svg width={width} height={height} className="w-full">
-          {/* Grid lines */}
-          {[0, 25, 50, 75, 100].map((pct) => (
-            <line
-              key={pct}
-              x1={padding}
-              x2={width - padding}
-              y1={height - padding - (pct / 100) * (height - 2 * padding)}
-              y2={height - padding - (pct / 100) * (height - 2 * padding)}
-              stroke="#374151"
-              strokeWidth={1}
-            />
-          ))}
-          {/* Data line */}
-          <polyline
-            fill="none"
-            stroke={color}
-            strokeWidth={2}
-            points={points}
-          />
-        </svg>
-      </div>
-    );
-  };
-
-  if (!isConnected) {
+  if (connectionState !== 'connected') {
     return (
       <PageLayout>
-        <div className="h-full flex items-center justify-center p-6">
-          <EmptyState
-            title="No Device Connected"
-            description="Connect an Android device to monitor performance."
-          />
+        <div className="h-full flex items-center justify-center p-8">
+          <EmptyState title="Performance Monitor" description="Connect a device to track metrics." icon={<Activity className="w-16 h-16 text-muted-foreground/30" />} />
         </div>
       </PageLayout>
     );
@@ -377,165 +164,272 @@ export default function PerformancePage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col p-4 overflow-auto">
+      <div className="h-full flex flex-col bg-background overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Performance Monitor</h1>
-          <div className="flex gap-2 items-center">
-            {/* Refresh Rate Selector */}
-            <div className="flex items-center gap-2 bg-gray-800 rounded-md p-1">
-              {REFRESH_RATES.map((rate) => (
-                <button
-                  key={rate.value}
-                  onClick={() => setRefreshRate(rate.value)}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    refreshRate === rate.value
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {rate.label}
+        <div className="px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm sticky top-0 z-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+              <Activity className="w-5 h-5" />
+            </div>
+            <h1 className="text-lg font-bold tracking-tight">Performance</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+              {[1000, 2000, 5000].map(r => (
+                <button key={r} onClick={() => setRefreshRate(r)} className={cn("px-2 py-1 text-xs rounded transition-all", refreshRate === r ? "bg-background shadow font-medium" : "text-muted-foreground hover:text-foreground")}>
+                  {(r / 1000)}s
                 </button>
               ))}
             </div>
-
             <Button
               variant={isMonitoring ? 'warning' : 'primary'}
               size="small"
+              icon={isMonitoring ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
               onClick={() => setIsMonitoring(!isMonitoring)}
             >
-              {isMonitoring ? 'Stop' : 'Start'} Monitoring
-            </Button>
-
-            <Button variant="secondary" size="small" onClick={exportSnapshot}>
-              Export Snapshot
+              {isMonitoring ? 'Stop' : 'Start'}
             </Button>
           </div>
         </div>
 
-        {/* Graphs */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-          <Graph
-            data={cpuHistory.map((d) => d.usage)}
-            maxValue={100}
-            color="#3B82F6"
-            label="CPU Usage"
-          />
-          <Graph
-            data={memoryHistory.map((d) => (d.used / d.total) * 100 || 0)}
-            maxValue={100}
-            color="#10B981"
-            label="Memory Usage"
-          />
-        </div>
+        <div className="p-6 space-y-6">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* CPU Card */}
+            <Card className="bg-gradient-to-br from-blue-500/10 via-card/80 to-card border-blue-500/20 backdrop-blur-sm overflow-hidden relative group hover:border-blue-500/40 transition-colors">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/20 transition-colors" />
+              <CardContent className="p-5 flex items-center justify-between relative">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPU Load</p>
+                  <p className="text-3xl font-bold mt-1 tabular-nums">{cpuHistory.slice(-1)[0]?.usage || 0}<span className="text-lg text-muted-foreground">%</span></p>
+                </div>
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <Cpu className="w-6 h-6 text-blue-500" />
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Battery & Memory Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {/* Memory Details */}
-          <div className="bg-gray-800 rounded-md p-4">
-            <h3 className="text-sm text-gray-400 mb-2">Memory</h3>
-            {memoryHistory.length > 0 ? (
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Total:</span>
-                  <span>{formatBytes(memoryHistory[memoryHistory.length - 1].total)}</span>
+            {/* Memory Card */}
+            <Card className="bg-gradient-to-br from-emerald-500/10 via-card/80 to-card border-emerald-500/20 backdrop-blur-sm overflow-hidden relative group hover:border-emerald-500/40 transition-colors">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/20 transition-colors" />
+              <CardContent className="p-5 flex items-center justify-between relative">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Memory Used</p>
+                  <p className="text-3xl font-bold mt-1 tabular-nums">{memoryHistory.slice(-1)[0] ? Math.round((memoryHistory.slice(-1)[0].used / memoryHistory.slice(-1)[0].total) * 100) : 0}<span className="text-lg text-muted-foreground">%</span></p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Used:</span>
-                  <span>{formatBytes(memoryHistory[memoryHistory.length - 1].used)}</span>
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <Server className="w-6 h-6 text-emerald-500" />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Available:</span>
-                  <span>{formatBytes(memoryHistory[memoryHistory.length - 1].available)}</span>
+              </CardContent>
+            </Card>
+
+            {/* Battery Card */}
+            <Card className={cn(
+              "bg-gradient-to-br via-card/80 to-card backdrop-blur-sm overflow-hidden relative group transition-colors",
+              (battery?.level || 0) <= 20
+                ? "from-red-500/10 border-red-500/20 hover:border-red-500/40"
+                : (battery?.level || 0) <= 50
+                ? "from-amber-500/10 border-amber-500/20 hover:border-amber-500/40"
+                : "from-green-500/10 border-green-500/20 hover:border-green-500/40"
+            )}>
+              <div className={cn(
+                "absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 transition-colors",
+                (battery?.level || 0) <= 20 ? "bg-red-500/10 group-hover:bg-red-500/20" :
+                (battery?.level || 0) <= 50 ? "bg-amber-500/10 group-hover:bg-amber-500/20" :
+                "bg-green-500/10 group-hover:bg-green-500/20"
+              )} />
+              <CardContent className="p-5 flex items-center justify-between relative">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Battery Level</p>
+                  <p className={cn(
+                    "text-3xl font-bold mt-1 tabular-nums",
+                    (battery?.level || 0) <= 20 ? "text-red-500" : (battery?.level || 0) <= 50 ? "text-amber-500" : "text-green-500"
+                  )}>{battery?.level || 0}<span className="text-lg text-muted-foreground">%</span></p>
+                  {battery?.status === 'Charging' && <p className="text-[10px] text-amber-500 font-medium mt-0.5">Charging</p>}
                 </div>
-              </div>
-            ) : (
-              <div className="text-gray-500">-</div>
-            )}
+                <div className={cn(
+                  "p-3 rounded-xl border",
+                  (battery?.level || 0) <= 20 ? "bg-red-500/10 border-red-500/20" :
+                  (battery?.level || 0) <= 50 ? "bg-amber-500/10 border-amber-500/20" :
+                  "bg-green-500/10 border-green-500/20"
+                )}>
+                  <Zap className={cn(
+                    "w-6 h-6",
+                    battery?.status === 'Charging' ? "text-amber-400 fill-current animate-pulse" :
+                    (battery?.level || 0) <= 20 ? "text-red-500" :
+                    (battery?.level || 0) <= 50 ? "text-amber-500" : "text-green-500"
+                  )} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Temperature Card */}
+            <Card className={cn(
+              "bg-gradient-to-br via-card/80 to-card backdrop-blur-sm overflow-hidden relative group transition-colors",
+              (battery?.temperature || 0) >= 45
+                ? "from-red-500/10 border-red-500/20 hover:border-red-500/40"
+                : (battery?.temperature || 0) >= 35
+                ? "from-orange-500/10 border-orange-500/20 hover:border-orange-500/40"
+                : "from-slate-500/10 border-border/50 hover:border-border"
+            )}>
+              <div className={cn(
+                "absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 transition-colors",
+                (battery?.temperature || 0) >= 45 ? "bg-red-500/10 group-hover:bg-red-500/20" :
+                (battery?.temperature || 0) >= 35 ? "bg-orange-500/10 group-hover:bg-orange-500/20" :
+                "bg-slate-500/5 group-hover:bg-slate-500/10"
+              )} />
+              <CardContent className="p-5 flex items-center justify-between relative">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Temperature</p>
+                  <p className={cn(
+                    "text-3xl font-bold mt-1 tabular-nums",
+                    (battery?.temperature || 0) >= 45 ? "text-red-500" : (battery?.temperature || 0) >= 35 ? "text-orange-500" : ""
+                  )}>{battery?.temperature || 0}<span className="text-lg text-muted-foreground">°C</span></p>
+                </div>
+                <div className={cn(
+                  "p-3 rounded-xl border",
+                  (battery?.temperature || 0) >= 45 ? "bg-red-500/10 border-red-500/20" :
+                  (battery?.temperature || 0) >= 35 ? "bg-orange-500/10 border-orange-500/20" :
+                  "bg-slate-500/10 border-border/50"
+                )}>
+                  <Thermometer className={cn(
+                    "w-6 h-6",
+                    (battery?.temperature || 0) >= 45 ? "text-red-500" :
+                    (battery?.temperature || 0) >= 35 ? "text-orange-500" : "text-muted-foreground"
+                  )} />
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Battery Info */}
-          <div className="bg-gray-800 rounded-md p-4">
-            <h3 className="text-sm text-gray-400 mb-2">Battery</h3>
-            {battery ? (
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Level:</span>
-                  <span className={battery.level < 20 ? 'text-red-400' : ''}>{battery.level}%</span>
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-border/50 bg-card/60 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2 border-b border-border/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <CardTitle className="text-sm font-medium">CPU History</CardTitle>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Status:</span>
-                  <span>{battery.status}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Voltage:</span>
-                  <span>{battery.voltage.toFixed(2)} V</span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-gray-500">-</div>
-            )}
-          </div>
-
-          {/* Temperature & Drain Rate */}
-          <div className="bg-gray-800 rounded-md p-4">
-            <h3 className="text-sm text-gray-400 mb-2">Temperature & Drain</h3>
-            <div className="space-y-1">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Temperature:</span>
-                <span className={battery && battery.temperature > 40 ? 'text-red-400' : ''}>
-                  {battery ? `${battery.temperature.toFixed(1)}°C` : '-'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Drain Rate:</span>
-                <span>{drainRate !== null ? `${drainRate}%/hr` : '-'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Process Table */}
-        <div className="flex-1 bg-gray-800 rounded-md overflow-hidden">
-          <div className="p-4 border-b border-gray-700">
-            <h3 className="text-lg font-semibold">Top Processes</h3>
-          </div>
-          <div className="overflow-auto max-h-64">
-            <table className="w-full">
-              <thead className="bg-gray-900 sticky top-0">
-                <tr className="text-left text-sm text-gray-400">
-                  <th className="p-3">PID</th>
-                  <th className="p-3">User</th>
-                  <th className="p-3 text-right">CPU %</th>
-                  <th className="p-3 text-right">MEM %</th>
-                  <th className="p-3">Process</th>
-                </tr>
-              </thead>
-              <tbody>
-                {processes.length > 0 ? (
-                  processes.map((proc, index) => (
-                    <tr key={`${proc.pid}-${index}`} className="border-t border-gray-700">
-                      <td className="p-3 font-mono text-sm">{proc.pid}</td>
-                      <td className="p-3 text-sm text-gray-400">{proc.user}</td>
-                      <td className="p-3 text-right font-mono">
-                        <span className={proc.cpu > 50 ? 'text-red-400' : proc.cpu > 20 ? 'text-yellow-400' : ''}>
-                          {proc.cpu.toFixed(1)}%
-                        </span>
-                      </td>
-                      <td className="p-3 text-right font-mono">{proc.mem.toFixed(1)}%</td>
-                      <td className="p-3 text-sm truncate max-w-xs">{proc.name}</td>
-                    </tr>
-                  ))
+              </CardHeader>
+              <CardContent className="h-64 p-4 pt-2">
+                {cpuHistory.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground/50">
+                    <Cpu className="w-10 h-10 mb-2 stroke-[1.5]" />
+                    <p className="text-xs">Start monitoring to see CPU data</p>
+                  </div>
                 ) : (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
-                      {isMonitoring ? 'Collecting data...' : 'Start monitoring to see processes'}
-                    </td>
-                  </tr>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={cpuHistory}>
+                      <defs>
+                        <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="timestamp" tick={false} axisLine={false} />
+                      <YAxis domain={[0, 100]} tickLine={false} axisLine={false} tick={{ fill: '#6b7280', fontSize: 10 }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', fontSize: '12px' }}
+                        itemStyle={{ color: '#fff' }}
+                        labelFormatter={() => ''}
+                      />
+                      <Area type="monotone" dataKey="usage" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCpu)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 )}
-              </tbody>
-            </table>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50 bg-card/60 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2 border-b border-border/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <CardTitle className="text-sm font-medium">Memory History (GB)</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="h-64 p-4 pt-2">
+                {memoryHistory.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground/50">
+                    <Server className="w-10 h-10 mb-2 stroke-[1.5]" />
+                    <p className="text-xs">Start monitoring to see memory data</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={memoryHistory}>
+                      <defs>
+                        <linearGradient id="colorMem" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="timestamp" tick={false} axisLine={false} />
+                      <YAxis tickLine={false} axisLine={false} tick={{ fill: '#6b7280', fontSize: 10 }} tickFormatter={(val) => (val / 1024 / 1024 / 1024).toFixed(1)} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', fontSize: '12px' }}
+                        itemStyle={{ color: '#fff' }}
+                        labelFormatter={() => ''}
+                        formatter={(val: number) => [formatBytes(val), 'used']}
+                      />
+                      <Area type="monotone" dataKey="used" stroke="#10b981" fillOpacity={1} fill="url(#colorMem)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Top Processes */}
+          <Card className="border-border/50 bg-card/60 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="pb-2 border-b border-border/30">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-500" />
+                <CardTitle className="text-sm font-medium">Top Processes</CardTitle>
+                {processes.length > 0 && (
+                  <span className="text-xs text-muted-foreground ml-auto">{processes.length} processes</span>
+                )}
+              </div>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-[11px] text-muted-foreground bg-muted/30 uppercase font-semibold tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3">PID</th>
+                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">User</th>
+                    <th className="px-4 py-3 text-right">CPU%</th>
+                    <th className="px-4 py-3 text-right">Mem%</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {processes.map((proc, i) => (
+                    <tr key={i} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{proc.pid}</td>
+                      <td className="px-4 py-3 font-medium truncate max-w-[200px]" title={proc.name}>{proc.name}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{proc.user}</td>
+                      <td className={cn("px-4 py-3 text-right font-mono tabular-nums", proc.cpu > 50 ? "text-red-500 font-bold" : proc.cpu > 20 ? "text-amber-500 font-semibold" : "")}>{proc.cpu.toFixed(1)}%</td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-muted-foreground">{proc.mem.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                  {processes.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-12">
+                        <div className="flex flex-col items-center justify-center text-muted-foreground/50">
+                          <Microchip className="w-10 h-10 mb-3 stroke-[1.5]" />
+                          <p className="text-sm font-medium">No process data</p>
+                          <p className="text-xs mt-1">Click Start to begin monitoring</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
         </div>
       </div>
     </PageLayout>
