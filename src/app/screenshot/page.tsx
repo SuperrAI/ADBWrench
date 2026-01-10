@@ -144,7 +144,7 @@ export default function ScreenshotPage() {
       const videoData = await pullFile(recordingPathRef.current);
 
       // Create download
-      const blob = new Blob([videoData], { type: 'video/mp4' });
+      const blob = new Blob([videoData.buffer as ArrayBuffer], { type: 'video/mp4' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

@@ -205,7 +205,7 @@ export default function BugreportPage() {
       toast.info('Downloading bugreport...');
       const data = await pullFile(report.path);
 
-      const blob = new Blob([data], { type: 'application/zip' });
+      const blob = new Blob([data.buffer as ArrayBuffer], { type: 'application/zip' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
