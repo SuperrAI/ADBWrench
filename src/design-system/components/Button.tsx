@@ -4,8 +4,8 @@ import { CoreColors, Neutral, Orange } from '@/design-system/foundations/colors'
 import { textStyles } from '@/design-system/foundations/typography';
 import { Spinner } from './Spinner';
 
-// Base classes that apply to all buttons
-const baseButtonStyles = `inline-flex items-center justify-center rounded-full border border-[${Neutral.N200}] bg-[${Neutral.N50}] transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed`;
+// Base classes that apply to all buttons - terminal aesthetic (no rounded corners)
+const baseButtonStyles = `inline-flex items-center justify-center border border-[${Neutral.N200}] bg-[${Neutral.N50}] transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed`;
 
 // Size-specific classes
 const sizeClasses = {
@@ -531,51 +531,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const hasChildren = Boolean(children) && !iconOnly;
 
-    // Get border radius based on variant and size
+    // Get border radius based on variant and size - terminal aesthetic (no rounded corners)
     const getBorderRadius = () => {
-      if (variant === 'loading') {
-        if (props.shape === 'default') {
-          // Squircle loading button
-          switch (size) {
-            case 'small':
-              return '10px';
-            case 'medium':
-              return '12px';
-            case 'large':
-              return '14px';
-            default:
-              return '12px';
-          }
-        }
-        // Rounded loading button
-        return '99px';
-      }
-
-      if (variant === 'squircle') {
-        switch (size) {
-          case 'small':
-            return '10px';
-          case 'medium':
-            return '12px';
-          case 'large':
-            return '14px';
-          default:
-            return '12px';
-        }
-      } else if (variant === 'squircleIcon') {
-        // New squircle icon button border radius
-        switch (size) {
-          case 'small':
-            return '8px';
-          case 'medium':
-            return '10px';
-          case 'large':
-            return '12px';
-          default:
-            return '10px';
-        }
-      }
-      return '99px'; // Default rounded for all other variants
+      // Terminal aesthetic: all buttons have sharp corners
+      return '0';
     };
 
     // Get button size specific padding classes and width/height for icon-only buttons
@@ -605,11 +564,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       }
     };
 
-    // Get shadow if elevated
+    // Get shadow if elevated - terminal aesthetic (no shadows)
     const getShadow = () => {
-      if (effectiveVariant === 'elevated') {
-        return '0px 2px 2px -1px rgba(0,0,0,0.10)';
-      }
+      // Terminal aesthetic: no shadows, use borders instead
       return 'none';
     };
 

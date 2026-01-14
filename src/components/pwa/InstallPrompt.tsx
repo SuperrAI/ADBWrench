@@ -102,11 +102,11 @@ export function InstallPrompt() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <img src="/icons/icon-192x192.png" alt="SuperrWrench" className="w-10 h-10 rounded-lg" />
-            Install SuperrWrench
+            <img src="/icons/icon-192x192.png" alt="ADB Wrench" className="w-10 h-10 rounded-lg" />
+            Install ADB Wrench
           </DialogTitle>
           <DialogDescription>
-            Install SuperrWrench for quick access and offline support. Works without internet once
+            Install ADB Wrench for quick access and offline support. Works without internet once
             installed.
           </DialogDescription>
         </DialogHeader>

@@ -163,7 +163,7 @@ export const OptionsMenu = React.forwardRef<HTMLDivElement, OptionsMenuProps>(
       document.documentElement.style.setProperty('--neutral-200', Neutral.N200);
       document.documentElement.style.setProperty('--neutral-100', Neutral.N100);
       document.documentElement.style.setProperty('--neutral-400', Neutral.N400);
-      document.documentElement.style.setProperty('--red-50', Red.R50);
+      document.documentElement.style.setProperty('--red-50', '#FEF2F2'); // Light red for hover
       document.documentElement.style.setProperty('--red-500', Red.R500);
 
       // Add a style tag if it doesn't exist
@@ -214,7 +214,7 @@ export const OptionsMenu = React.forwardRef<HTMLDivElement, OptionsMenuProps>(
         /* Delete menu item hover */
         [data-radix-popper-content-wrapper] [role="menuitem"][data-delete="true"]:hover,
         [data-radix-popper-content-wrapper] [role="menuitem"][data-delete="true"][data-highlighted] {
-          background-color: ${Red.R50} !important;
+          background-color: #FEF2F2 !important;
           border-radius: 8px !important;
         }
         

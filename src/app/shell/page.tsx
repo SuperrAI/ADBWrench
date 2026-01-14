@@ -2,39 +2,24 @@
 
 import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react';
 import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { useDevice } from '@/context/device-context';
-import { Button } from '@/design-system/components/Button';
 import { shell, shellStream } from '@/services/adb';
-import {
-  Terminal,
-  Play,
-  Square,
-  Copy,
-  Trash2,
-  Check,
-  Clock,
-  ChevronRight,
-  Command,
-  Smartphone,
-  Keyboard
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { TerminalSpinner } from '@/components/ui/TerminalUI';
 
 // --- Preset Commands Data ---
 const PRESET_COMMANDS = [
-  { label: 'System Props', command: 'getprop', description: 'List all system properties' },
-  { label: 'List Packages', command: 'pm list packages', description: 'List installed packages' },
-  { label: 'Battery', command: 'dumpsys battery', description: 'Battery status' },
-  { label: 'Disk Usage', command: 'df -h', description: 'Disk usage' },
-  { label: 'Top Processes', command: 'top -n 1', description: 'Process list snapshot' },
-  { label: 'All Processes', command: 'ps -A', description: 'All processes' },
-  { label: 'Netstat', command: 'netstat', description: 'Network statistics' },
-  { label: 'IP Address', command: 'ip addr show', description: 'IP configuration' },
+  { label: 'GETPROP', command: 'getprop' },
+  { label: 'PACKAGES', command: 'pm list packages' },
+  { label: 'BATTERY', command: 'dumpsys battery' },
+  { label: 'DISK', command: 'df -h' },
+  { label: 'TOP', command: 'top -n 1' },
+  { label: 'PS', command: 'ps -A' },
+  { label: 'NETSTAT', command: 'netstat' },
+  { label: 'IP', command: 'ip addr show' },
 ];
 
-const HISTORY_STORAGE_KEY = 'superrwrench-shell-history';
+const HISTORY_STORAGE_KEY = 'adbwrench-shell-history';
 const MAX_HISTORY_SIZE = 100;
 
 interface OutputEntry {
@@ -53,7 +38,7 @@ export default function ShellPage() {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [copied, setCopied] = useState(false);
-  const [timeout, setTimeout] = useState(30000);
+  const [cmdTimeout, setCmdTimeout] = useState(30000);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
@@ -119,7 +104,7 @@ export default function ShellPage() {
         stopFnRef.current = exit;
       } else {
         const timeoutPromise = new Promise<string>((_, reject) => {
-          window.setTimeout(() => reject(new Error('Command timed out')), timeout);
+          window.setTimeout(() => reject(new Error('Command timed out')), cmdTimeout);
         });
         const result = await Promise.race([shell(trimmedCmd), timeoutPromise]);
         if (result) addOutput('output', result);
@@ -130,7 +115,7 @@ export default function ShellPage() {
       setIsRunning(false);
       setIsStreaming(false);
     }
-  }, [connectionState, addOutput, addToHistory, timeout]);
+  }, [connectionState, addOutput, addToHistory, cmdTimeout]);
 
   const stopCommand = useCallback(() => {
     if (stopFnRef.current) {
@@ -139,7 +124,7 @@ export default function ShellPage() {
     }
     setIsRunning(false);
     setIsStreaming(false);
-    addOutput('output', '\n[Command stopped]');
+    addOutput('output', '\n[STOPPED]');
   }, [addOutput]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
@@ -190,12 +175,18 @@ export default function ShellPage() {
   if (connectionState !== 'connected') {
     return (
       <PageLayout>
-        <div className="h-full flex items-center justify-center p-8">
-          <EmptyState
-            title="Shell Disconnected"
-            description="Connect an Android device to access the shell terminal."
-            icon={<Terminal className="w-16 h-16 text-muted-foreground/30" />}
-          />
+        <div className="h-full flex items-center justify-center p-8 font-mono">
+          <div className="text-center">
+            <pre className="text-muted-foreground mb-4 text-xs">
+{`  _________
+ |  $_ |
+ |_________|`}
+            </pre>
+            <div className="text-sm mb-2">SHELL DISCONNECTED</div>
+            <div className="text-xs text-muted-foreground">
+              Connect a device to access the shell.
+            </div>
+          </div>
         </div>
       </PageLayout>
     );
@@ -203,71 +194,57 @@ export default function ShellPage() {
 
   return (
     <PageLayout>
-      <div className="h-[calc(100vh-60px)] flex flex-col overflow-hidden bg-background">
-
+      <div className="h-full flex flex-col font-mono overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <Terminal className="w-5 h-5" />
-            </div>
+        <div className="border-b border-border p-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">Shell Interface</h1>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                Connected
-              </p>
+              <h1 className="text-sm uppercase tracking-wider">SHELL // ADB</h1>
+              <div className="text-xs text-muted-foreground mt-1">
+                <span className="text-green-500">●</span> CONNECTED
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 mr-2 px-3 py-1.5 bg-muted/40 rounded-md border border-border/50">
-              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            <div className="flex items-center gap-2 text-xs">
               <select
-                value={timeout}
-                onChange={(e) => setTimeout(Number(e.target.value))}
-                className="bg-transparent text-xs font-medium outline-none cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                value={cmdTimeout}
+                onChange={(e) => setCmdTimeout(Number(e.target.value))}
+                className="bg-transparent border border-border px-2 py-1 outline-none"
               >
-                <option value={10000}>10s Timeout</option>
-                <option value={30000}>30s Timeout</option>
-                <option value={60000}>60s Timeout</option>
+                <option value={10000}>10S</option>
+                <option value={30000}>30S</option>
+                <option value={60000}>60S</option>
               </select>
-            </div>
 
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={handleCopyOutput}
-              disabled={output.length === 0}
-              icon={copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-            >
-              Copy
-            </Button>
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={() => setOutput([])}
-              disabled={output.length === 0}
-              icon={<Trash2 className="w-4 h-4" />}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              Clear
-            </Button>
+              <button
+                onClick={handleCopyOutput}
+                disabled={output.length === 0}
+                className="px-2 py-1 border border-border hover:bg-muted disabled:opacity-50"
+              >
+                [ {copied ? 'COPIED' : 'COPY'} ]
+              </button>
+
+              <button
+                onClick={() => setOutput([])}
+                disabled={output.length === 0}
+                className="px-2 py-1 border border-border hover:bg-muted disabled:opacity-50"
+              >
+                [ CLEAR ]
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="px-6 py-3 border-b border-border/40 bg-muted/5 shrink-0 overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider shrink-0 mr-2">Quick Ops</span>
+        {/* Quick Commands */}
+        <div className="border-b border-border p-2 flex-shrink-0 overflow-x-auto">
+          <div className="flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground mr-2">QUICK:</span>
             {PRESET_COMMANDS.map((preset) => (
               <button
                 key={preset.command}
                 onClick={() => runPreset(preset.command)}
-                className="group relative px-3 py-1.5 rounded-md bg-card border border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-all text-xs font-medium text-muted-foreground hover:text-foreground whitespace-nowrap shadow-sm"
-                title={preset.description}
+                className="px-2 py-1 border border-border hover:bg-muted whitespace-nowrap"
               >
-                <span className="font-mono text-primary/70 group-hover:text-primary mr-1.5">$</span>
                 {preset.label}
               </button>
             ))}
@@ -276,98 +253,86 @@ export default function ShellPage() {
 
         {/* Terminal Output */}
         <div
-          className="flex-1 overflow-hidden relative group bg-[#0c0c0c]"
+          className="flex-1 overflow-hidden bg-black"
           onClick={() => inputRef.current?.focus()}
         >
           <div
             ref={outputRef}
-            className="absolute inset-0 overflow-y-auto p-4 font-mono text-sm space-y-1 scroll-smooth"
+            className="h-full overflow-y-auto p-4 text-xs space-y-1"
           >
             {output.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30 select-none pointer-events-none">
-                <Terminal className="w-12 h-12 mb-4 opacity-20" />
-                <p>Ready for input...</p>
-                <div className="mt-8 flex items-center gap-4 text-xs">
-                  <span className="flex items-center gap-1"><Keyboard className="w-3 h-3" /> Type command</span>
-                  <span className="flex items-center gap-1"><Command className="w-3 h-3" /> Enter to run</span>
-                </div>
+              <div className="h-full flex flex-col items-center justify-center text-zinc-600">
+                <pre className="mb-4">
+{`>_`}
+                </pre>
+                <p>READY FOR INPUT</p>
+                <p className="text-zinc-700 mt-2">TYPE COMMAND + ENTER</p>
               </div>
             ) : (
               output.map((entry) => (
                 <div key={entry.id} className="break-all leading-snug">
                   {entry.type === 'command' && (
-                    <div className="flex items-start gap-2 mt-4 mb-1 text-primary/90 font-bold select-none">
-                      <ChevronRight className="w-4 h-4 mt-0.5" />
-                      <span>{entry.content}</span>
+                    <div className="text-orange-500 mt-3 mb-1">
+                      {'>'} {entry.content}
                     </div>
                   )}
                   {entry.type === 'output' && (
-                    <div className="pl-6 text-neutral-300/90 whitespace-pre-wrap">{entry.content}</div>
+                    <div className="text-zinc-300 whitespace-pre-wrap pl-2">{entry.content}</div>
                   )}
                   {entry.type === 'error' && (
-                    <div className="pl-6 text-red-400 whitespace-pre-wrap">{entry.content}</div>
+                    <div className="text-red-500 whitespace-pre-wrap pl-2">[!] {entry.content}</div>
                   )}
                 </div>
               ))
             )}
 
-            {/* Active Streaming Indicator */}
-            <AnimatePresence>
-              {isStreaming && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="pl-6 mt-2 flex items-center gap-2 text-amber-500 font-mono text-xs"
-                >
-                  <span className="block w-2 H-2 rounded-full bg-amber-500 animate-pulse" />
-                  Streaming active...
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <div className="h-8" /> {/* Scroll padding */}
+            {isStreaming && (
+              <div className="text-orange-500 mt-2">
+                <TerminalSpinner label="STREAMING" />
+              </div>
+            )}
+            <div className="h-4" />
           </div>
         </div>
 
-        {/* Command Input Area */}
-        <div className="p-4 bg-card border-t border-border shrink-0 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] z-10">
-          <div className="relative flex items-center bg-muted/40 border border-input focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 rounded-xl px-4 py-3 transition-all">
-            <span className="text-primary font-mono mr-3 select-none">$</span>
+        {/* Command Input */}
+        <div className="border-t border-border p-3 flex-shrink-0 bg-zinc-950">
+          <div className="flex items-center gap-2">
+            <span className="text-orange-500">$</span>
             <input
               ref={inputRef}
               type="text"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Enter ADB shell command..."
-              className="flex-1 bg-transparent border-none outline-none font-mono text-sm placeholder:text-muted-foreground/50"
+              placeholder="Enter command..."
+              className="flex-1 bg-transparent border-none outline-none text-sm text-zinc-100 placeholder:text-zinc-600"
               disabled={isRunning && !isStreaming}
               autoComplete="off"
             />
-            <div className="flex items-center gap-2 pl-2">
+            <div className="flex items-center gap-1">
               {isStreaming ? (
-                <Button variant="warning" size="small" onClick={stopCommand} icon={<Square className="w-3 h-3 fill-current" />}>
-                  Stop
-                </Button>
+                <button
+                  onClick={stopCommand}
+                  className="px-3 py-1 border border-red-500 text-red-500 text-xs hover:bg-red-500/10"
+                >
+                  [ STOP ]
+                </button>
               ) : (
-                <Button
-                  variant="primary"
-                  size="small"
+                <button
                   onClick={() => executeCommand(command)}
                   disabled={!command.trim() || isRunning}
-                  icon={<Play className="w-3 h-3 fill-current" />}
+                  className="px-3 py-1 border border-foreground bg-foreground text-background text-xs disabled:opacity-50"
                 >
-                  Execute
-                </Button>
+                  [ RUN ]
+                </button>
               )}
             </div>
           </div>
-          <div className="px-1 mt-2 flex justify-between text-[10px] text-muted-foreground font-medium">
-            <span>Press <kbd className="font-mono bg-muted px-1 rounded">↑</kbd> <kbd className="font-mono bg-muted px-1 rounded">↓</kbd> for history</span>
-            {isStreaming && <span><kbd className="font-mono bg-muted px-1 rounded">Ctrl+C</kbd> to stop</span>}
+          <div className="text-[10px] text-zinc-600 mt-2">
+            ↑↓ HISTORY | {isStreaming && 'CTRL+C STOP'}
           </div>
         </div>
-
       </div>
     </PageLayout>
   );

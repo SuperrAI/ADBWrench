@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
+import { IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers/providers';
 import { PWAProvider } from '@/components/pwa';
@@ -10,14 +9,20 @@ import { LayoutProvider } from '@/context/layout-context';
 import { KeyboardShortcutsProvider } from '@/components/ui/KeyboardShortcutsProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-ibm-plex-mono',
+});
+
 export const metadata: Metadata = {
-  title: 'SuperrWrench',
+  title: 'ADB Wrench',
   description: 'Browser-based Android device debugging and management tool',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SuperrWrench',
+    title: 'ADB Wrench',
   },
   formatDetection: {
     telephone: false,
@@ -42,8 +47,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
-      <body className="font-sans antialiased">
+    <html lang="en" className={ibmPlexMono.variable} suppressHydrationWarning>
+      <body className="font-mono antialiased">
         <ThemeProvider>
           <DeviceProvider>
             <LayoutProvider>

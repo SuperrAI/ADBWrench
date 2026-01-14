@@ -18,10 +18,9 @@ module.exports = {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['var(--font-geist-sans)', ...fontFamily.sans],
-				mono: ['var(--font-geist-mono)', ...fontFamily.mono],
-				geist: ['var(--font-geist-sans)', ...fontFamily.sans],
-				kalam: ['var(--font-kalam)', ...fontFamily.sans],
+				// IBM Plex Mono for terminal aesthetic - used as both sans and mono
+				sans: ['var(--font-ibm-plex-mono)', ...fontFamily.mono],
+				mono: ['var(--font-ibm-plex-mono)', ...fontFamily.mono],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

@@ -2,37 +2,23 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { useDevice } from '@/context/device-context';
-import { Button } from '@/design-system/components/Button';
 import { captureScreenshot, shellStream, pullFile, deleteFile } from '@/services/adb';
 import { cn } from '@/lib/utils';
-import {
-  Camera,
-  Video,
-  Square,
-  Download,
-  Copy,
-  Trash2,
-  Check,
-  Clock,
-  Image as ImageIcon,
-  Monitor
-} from 'lucide-react';
+import { TerminalSpinner, TerminalProgressBar } from '@/components/ui/TerminalUI';
 
-// Recording duration options (in seconds)
 const DURATION_OPTIONS = [
-  { value: 30, label: '30s' },
-  { value: 60, label: '1m' },
-  { value: 120, label: '2m' },
-  { value: 180, label: '3m' },
+  { value: 30, label: '30S' },
+  { value: 60, label: '1M' },
+  { value: 120, label: '2M' },
+  { value: 180, label: '3M' },
 ];
 
 const MAX_HISTORY = 10;
 
 interface Screenshot {
   id: string;
-  data: string; // base64 data URL
+  data: string;
   timestamp: Date;
 }
 
@@ -49,9 +35,8 @@ export default function ScreenshotPage() {
 
   const stopRecordingRef = useRef<(() => void) | null>(null);
   const recordingTimerRef = useRef<number | null>(null);
-  const recordingPathRef = useRef<string>('/sdcard/superrwrench_recording.mp4');
+  const recordingPathRef = useRef<string>('/sdcard/adbwrench_recording.mp4');
 
-  // Capture screenshot
   const handleCapture = useCallback(async () => {
     if (connectionState !== 'connected') return;
 
@@ -60,8 +45,6 @@ export default function ScreenshotPage() {
 
     try {
       const pngData = await captureScreenshot();
-
-      // Convert to base64 data URL
       const base64 = btoa(String.fromCharCode(...pngData));
       const dataUrl = `data:image/png;base64,${base64}`;
 
@@ -71,10 +54,7 @@ export default function ScreenshotPage() {
         timestamp: new Date(),
       };
 
-      setScreenshots((prev) => {
-        const updated = [newScreenshot, ...prev].slice(0, MAX_HISTORY);
-        return updated;
-      });
+      setScreenshots((prev) => [newScreenshot, ...prev].slice(0, MAX_HISTORY));
       setSelectedScreenshot(newScreenshot);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to capture screenshot');
@@ -83,7 +63,6 @@ export default function ScreenshotPage() {
     }
   }, [connectionState]);
 
-  // Start recording
   const handleStartRecording = useCallback(async () => {
     if (connectionState !== 'connected') return;
 
@@ -92,11 +71,9 @@ export default function ScreenshotPage() {
     setError(null);
 
     try {
-      // Start timer
       recordingTimerRef.current = window.setInterval(() => {
         setRecordingElapsed((prev) => {
           if (prev >= recordingDuration - 1) {
-            // Auto-stop when duration reached
             handleStopRecording();
             return prev;
           }
@@ -104,46 +81,35 @@ export default function ScreenshotPage() {
         });
       }, 1000);
 
-      // Start recording
       const { exit } = await shellStream(
         `screenrecord --time-limit ${recordingDuration} ${recordingPathRef.current}`,
-        () => {}, // stdout
-        () => {}  // stderr
+        () => {},
+        () => {}
       );
       stopRecordingRef.current = exit;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start recording');
       setIsRecording(false);
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     }
   }, [connectionState, recordingDuration]);
 
-  // Stop recording and download
   const handleStopRecording = useCallback(async () => {
-    // Stop the timer
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
     }
 
-    // Stop the recording process
     if (stopRecordingRef.current) {
       stopRecordingRef.current();
       stopRecordingRef.current = null;
     }
 
     setIsRecording(false);
-
-    // Wait a moment for the file to be finalized
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     try {
-      // Pull the file
       const videoData = await pullFile(recordingPathRef.current);
-
-      // Create download
       const blob = new Blob([videoData.buffer as ArrayBuffer], { type: 'video/mp4' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -153,18 +119,14 @@ export default function ScreenshotPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      // Clean up file on device
       await deleteFile(recordingPathRef.current);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to download recording');
     }
   }, []);
 
-  // Download screenshot
   const handleDownload = useCallback(() => {
     if (!selectedScreenshot) return;
-
     const a = document.createElement('a');
     a.href = selectedScreenshot.data;
     a.download = `screenshot-${selectedScreenshot.timestamp.toISOString().replace(/[:.]/g, '-')}.png`;
@@ -173,69 +135,54 @@ export default function ScreenshotPage() {
     document.body.removeChild(a);
   }, [selectedScreenshot]);
 
-  // Copy to clipboard
   const handleCopy = useCallback(async () => {
     if (!selectedScreenshot) return;
-
     try {
-      // Convert data URL to blob
       const response = await fetch(selectedScreenshot.data);
       const blob = await response.blob();
-
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob }),
-      ]);
-
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback: try copying the data URL
-      try {
-        await navigator.clipboard.writeText(selectedScreenshot.data);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        setError('Failed to copy to clipboard');
-      }
+      setError('Failed to copy to clipboard');
     }
   }, [selectedScreenshot]);
 
-  // Delete screenshot
   const handleDelete = useCallback((id: string) => {
     setScreenshots((prev) => prev.filter((s) => s.id !== id));
-    if (selectedScreenshot?.id === id) {
-      setSelectedScreenshot(null);
-    }
+    if (selectedScreenshot?.id === id) setSelectedScreenshot(null);
   }, [selectedScreenshot]);
 
-  // Format elapsed time
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-      if (stopRecordingRef.current) {
-        stopRecordingRef.current();
-      }
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (stopRecordingRef.current) stopRecordingRef.current();
     };
   }, []);
 
   if (connectionState !== 'connected') {
     return (
       <PageLayout>
-        <div className="h-full flex items-center justify-center p-8">
-          <EmptyState
-            title="No Device Connected"
-            description="Connect an Android device via USB to capture screenshots and recordings."
-            icon={<Monitor className="w-16 h-16 text-muted-foreground/30" />}
-          />
+        <div className="h-full flex items-center justify-center p-8 font-mono">
+          <div className="text-center">
+            <pre className="text-muted-foreground mb-4 text-xs">
+{`  ______
+ |      |
+ | [  ] |
+ |______|
+   ||`}
+            </pre>
+            <div className="text-sm mb-2">SCREENSHOT DISCONNECTED</div>
+            <div className="text-xs text-muted-foreground">
+              Connect a device to capture screenshots.
+            </div>
+          </div>
         </div>
       </PageLayout>
     );
@@ -243,205 +190,167 @@ export default function ScreenshotPage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col overflow-hidden bg-background">
+      <div className="h-full flex flex-col font-mono overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <Monitor className="w-5 h-5" />
-            </div>
+        <div className="border-b border-border p-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Screenshot & Recording</h1>
-              <p className="text-xs text-muted-foreground">Capture device screen</p>
+              <h1 className="text-sm uppercase tracking-wider">SCREENSHOT // CAPTURE</h1>
+              <div className="text-xs text-muted-foreground mt-1">
+                {screenshots.length} CAPTURES | {isRecording ? 'RECORDING...' : 'READY'}
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Screenshot button */}
-            <Button
-              variant="primary"
-              size="small"
-              icon={<Camera className="w-4 h-4" />}
-              onClick={handleCapture}
-              disabled={isCapturing || isRecording}
-            >
-              {isCapturing ? 'Capturing...' : 'Screenshot'}
-            </Button>
 
-            {/* Recording controls */}
-            {!isRecording ? (
-              <>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/40 rounded-md border border-border/50">
-                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                onClick={handleCapture}
+                disabled={isCapturing || isRecording}
+                className="px-2 py-1 border border-green-500 text-green-500 hover:bg-green-500/10 disabled:opacity-50"
+              >
+                [ {isCapturing ? 'CAPTURING...' : 'SCREENSHOT'} ]
+              </button>
+
+              {!isRecording ? (
+                <>
                   <select
                     value={recordingDuration}
                     onChange={(e) => setRecordingDuration(Number(e.target.value))}
-                    className="bg-transparent text-xs font-medium outline-none cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                    className="bg-transparent border border-border px-2 py-1 outline-none"
                   >
                     {DURATION_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="small"
-                  icon={<Video className="w-4 h-4" />}
-                  onClick={handleStartRecording}
-                  disabled={isCapturing}
+                  <button
+                    onClick={handleStartRecording}
+                    disabled={isCapturing}
+                    className="px-2 py-1 border border-orange-500 text-orange-500 hover:bg-orange-500/10 disabled:opacity-50"
+                  >
+                    [ RECORD ]
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleStopRecording}
+                  className="px-2 py-1 border border-red-500 text-red-500 hover:bg-red-500/10"
                 >
-                  Record
-                </Button>
-              </>
-            ) : (
-              <Button
-                variant="warning"
-                size="small"
-                icon={<Square className="w-3 h-3 fill-current" />}
-                onClick={handleStopRecording}
-              >
-                Stop ({formatTime(recordingElapsed)} / {formatTime(recordingDuration)})
-              </Button>
-            )}
+                  [ STOP {formatTime(recordingElapsed)}/{formatTime(recordingDuration)} ]
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Error message */}
+        {/* Error */}
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
-            <p className="text-sm text-destructive font-medium">{error}</p>
+          <div className="border-b border-red-500 p-2 text-red-500 text-xs">
+            [!] ERROR: {error}
           </div>
         )}
 
-        {/* Content */}
+        {/* Recording Progress */}
+        {isRecording && (
+          <div className="border-b border-red-500 p-3 flex-shrink-0 bg-red-500/10">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-red-500">● RECORDING IN PROGRESS</span>
+              <span>{formatTime(recordingElapsed)} / {formatTime(recordingDuration)}</span>
+            </div>
+            <TerminalProgressBar
+              value={Math.round((recordingElapsed / recordingDuration) * 100)}
+              width={40}
+              showPercentage={false}
+            />
+          </div>
+        )}
+
+        {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Preview area */}
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-muted/20">
+          {/* Preview Area */}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-zinc-950">
             {selectedScreenshot ? (
               <div className="flex flex-col items-center gap-4 max-h-full">
-                <div className="relative group">
-                  <img
-                    src={selectedScreenshot.data}
-                    alt="Screenshot preview"
-                    className="max-w-full max-h-[calc(100vh-300px)] object-contain rounded-xl shadow-2xl border border-border/50"
-                  />
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                </div>
-                <div className="flex items-center gap-2 p-2 bg-card/80 backdrop-blur-sm rounded-xl border border-border/50 shadow-lg">
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    icon={<Download className="w-4 h-4" />}
+                <img
+                  src={selectedScreenshot.data}
+                  alt="Screenshot preview"
+                  className="max-w-full max-h-[calc(100vh-300px)] object-contain border border-border"
+                />
+                <div className="flex items-center gap-2 text-xs">
+                  <button
                     onClick={handleDownload}
+                    className="px-2 py-1 border border-border hover:bg-muted"
                   >
-                    Download
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    icon={copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    [ DOWNLOAD ]
+                  </button>
+                  <button
                     onClick={handleCopy}
+                    className="px-2 py-1 border border-border hover:bg-muted"
                   >
-                    {copied ? 'Copied!' : 'Copy'}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="small"
-                    icon={<Trash2 className="w-4 h-4" />}
+                    [ {copied ? 'COPIED!' : 'COPY'} ]
+                  </button>
+                  <button
                     onClick={() => handleDelete(selectedScreenshot.id)}
-                    className="hover:bg-destructive/10 hover:text-destructive"
+                    className="px-2 py-1 border border-red-500 text-red-500 hover:bg-red-500/10"
                   >
-                    Delete
-                  </Button>
+                    [ DELETE ]
+                  </button>
                 </div>
-                <p className="text-xs text-muted-foreground font-medium">
+                <div className="text-[10px] text-zinc-600">
                   {selectedScreenshot.timestamp.toLocaleString()}
-                </p>
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center text-center p-8">
-                <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mb-6">
-                  <ImageIcon className="w-10 h-10 text-muted-foreground/30" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Ready to Capture</h3>
-                <p className="text-sm text-muted-foreground max-w-xs">
-                  Click <span className="font-medium text-primary">Screenshot</span> to capture the device screen
-                  or <span className="font-medium text-primary">Record</span> to capture video
-                </p>
+              <div className="text-zinc-600 text-xs text-center">
+                <pre className="mb-4">{`>_`}</pre>
+                <p>NO SCREENSHOT SELECTED</p>
+                <p className="text-zinc-700 mt-2">CLICK SCREENSHOT TO CAPTURE</p>
               </div>
             )}
           </div>
 
-          {/* History sidebar */}
+          {/* History Sidebar */}
           {screenshots.length > 0 && (
-            <div className="w-56 border-l border-border/60 bg-card/30 backdrop-blur-sm overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-muted-foreground/20">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5" />
-                    History
-                  </h3>
-                  <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                    {screenshots.length}
-                  </span>
+            <div className="w-48 border-l border-border flex-shrink-0 overflow-y-auto bg-background">
+              <div className="p-3 border-b border-border">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  HISTORY ({screenshots.length})
                 </div>
-                <div className="space-y-3">
-                  {screenshots.map((screenshot) => (
+              </div>
+              <div className="p-2 space-y-2">
+                {screenshots.map((screenshot) => (
+                  <button
+                    key={screenshot.id}
+                    onClick={() => setSelectedScreenshot(screenshot)}
+                    className={cn(
+                      "w-full aspect-video border overflow-hidden relative group",
+                      selectedScreenshot?.id === screenshot.id
+                        ? "border-orange-500"
+                        : "border-border hover:border-muted-foreground"
+                    )}
+                  >
+                    <img
+                      src={screenshot.data}
+                      alt="Screenshot thumbnail"
+                      className="w-full h-full object-cover"
+                    />
                     <button
-                      key={screenshot.id}
-                      onClick={() => setSelectedScreenshot(screenshot)}
-                      className={cn(
-                        'w-full aspect-video rounded-lg overflow-hidden transition-all duration-200 relative group',
-                        selectedScreenshot?.id === screenshot.id
-                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-card shadow-lg'
-                          : 'border border-border/50 hover:border-primary/50 hover:shadow-md hover:scale-[1.02]'
-                      )}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(screenshot.id); }}
+                      className="absolute top-1 right-1 bg-red-500 text-white text-[10px] px-1 opacity-0 group-hover:opacity-100"
                     >
-                      <img
-                        src={screenshot.data}
-                        alt="Screenshot thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(screenshot.id);
-                          }}
-                          className="p-1.5 bg-destructive/90 hover:bg-destructive rounded-md text-white transition-colors"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
+                      X
                     </button>
-                  ))}
-                </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* Recording indicator */}
-        {isRecording && (
-          <div className="px-4 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white text-center text-sm flex items-center justify-center gap-3 shadow-lg">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-            </span>
-            <span className="font-medium">Recording in progress</span>
-            <span className="font-mono bg-white/20 px-2 py-0.5 rounded-md">
-              {formatTime(recordingElapsed)} / {formatTime(recordingDuration)}
-            </span>
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={handleStopRecording}
-              className="ml-2 bg-white/10 hover:bg-white/20 text-white border-white/20"
-            >
-              Stop Recording
-            </Button>
+        {/* Footer */}
+        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
+          <div className="text-[10px] text-zinc-600">
+            SCREENSHOT: INSTANT CAPTURE | RECORD: VIDEO UP TO 3MIN
           </div>
-        )}
+        </div>
       </div>
     </PageLayout>
   );

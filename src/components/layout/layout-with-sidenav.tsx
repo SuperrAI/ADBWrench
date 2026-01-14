@@ -8,8 +8,6 @@ interface LayoutWithSideNavProps {
 }
 
 export function LayoutWithSideNav({ children }: LayoutWithSideNavProps) {
-  // Use a static orange color for the avatar background
-  const avatarColor = '#FFA500';
   const pathname = usePathname();
 
   // Check if we're on the Home page or login page - don't show SideNav there
@@ -27,7 +25,7 @@ export function LayoutWithSideNav({ children }: LayoutWithSideNavProps) {
   return (
     <div className="h-full overflow-hidden">
       <div style={{ padding: '12px 0px 12px 12px' }} className="h-full fixed">
-        <SideNav className="h-full" avatarColor={avatarColor} />
+        <SideNav className="h-full" />
       </div>
       <main className="overflow-auto ml-[72px] h-full">{children}</main>
     </div>

@@ -2,221 +2,79 @@
 
 import { useState, useCallback } from 'react';
 import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { useDevice } from '@/context/device-context';
-import { Button } from '@/design-system/components/Button';
 import { shell } from '@/services/adb';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Power,
-  Smartphone,
-  Volume2,
-  Sun,
-  Wifi,
-  Plane,
-  Keyboard,
-  Sliders,
-  Check,
-  X,
-  RefreshCw,
-  RotateCcw,
-  HardDrive,
-  Lock,
-  VolumeX,
-  Minus,
-  Plus,
-  Send,
-  Home,
-  ArrowLeft,
-  Grid3X3,
-  Clock,
-  Camera,
-  SkipBack,
-  SkipForward,
-  Pause,
-  Play
-} from 'lucide-react';
 
-// Key events with icons
 const KEY_EVENTS = [
-  { label: 'Home', keycode: 3, icon: Home },
-  { label: 'Back', keycode: 4, icon: ArrowLeft },
-  { label: 'Menu', keycode: 82, icon: Grid3X3 },
-  { label: 'Recent', keycode: 187, icon: Clock },
-  { label: 'Power', keycode: 26, icon: Power },
-  { label: 'Vol Up', keycode: 24, icon: Plus },
-  { label: 'Vol Down', keycode: 25, icon: Minus },
-  { label: 'Mute', keycode: 164, icon: VolumeX },
-  { label: 'Play/Pause', keycode: 85, icon: Play },
-  { label: 'Next', keycode: 87, icon: SkipForward },
-  { label: 'Prev', keycode: 88, icon: SkipBack },
-  { label: 'Camera', keycode: 27, icon: Camera },
+  { label: 'HOME', keycode: 3 },
+  { label: 'BACK', keycode: 4 },
+  { label: 'MENU', keycode: 82 },
+  { label: 'RECENT', keycode: 187 },
+  { label: 'POWER', keycode: 26 },
+  { label: 'VOL+', keycode: 24 },
+  { label: 'VOL-', keycode: 25 },
+  { label: 'MUTE', keycode: 164 },
+  { label: 'PLAY', keycode: 85 },
+  { label: 'NEXT', keycode: 87 },
+  { label: 'PREV', keycode: 88 },
+  { label: 'CAM', keycode: 27 },
 ];
-
-// Confirmation dialog
-function ConfirmDialog({
-  title,
-  message,
-  confirmLabel,
-  icon,
-  onConfirm,
-  onCancel,
-}: {
-  title: string;
-  message: string;
-  confirmLabel: string;
-  icon?: React.ReactNode;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-card border border-border rounded-xl p-6 max-w-md mx-4 shadow-2xl"
-      >
-        <div className="flex items-start gap-4">
-          {icon && (
-            <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500 shrink-0">
-              {icon}
-            </div>
-          )}
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
-            <p className="text-sm text-muted-foreground">{message}</p>
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-border/50">
-          <Button variant="ghost" size="small" onClick={onCancel} icon={<X className="w-4 h-4" />}>
-            Cancel
-          </Button>
-          <Button variant="warning" size="small" onClick={onConfirm} icon={<RefreshCw className="w-4 h-4" />}>
-            {confirmLabel}
-          </Button>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-// Control section component
-function ControlSection({
-  title,
-  icon,
-  color = 'primary',
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  color?: 'primary' | 'red' | 'blue' | 'amber' | 'green' | 'purple';
-  children: React.ReactNode;
-}) {
-  const colorClasses = {
-    primary: 'from-primary/10 border-primary/20 hover:border-primary/40',
-    red: 'from-red-500/10 border-red-500/20 hover:border-red-500/40',
-    blue: 'from-blue-500/10 border-blue-500/20 hover:border-blue-500/40',
-    amber: 'from-amber-500/10 border-amber-500/20 hover:border-amber-500/40',
-    green: 'from-green-500/10 border-green-500/20 hover:border-green-500/40',
-    purple: 'from-purple-500/10 border-purple-500/20 hover:border-purple-500/40',
-  };
-
-  const iconColorClasses = {
-    primary: 'bg-primary/10 text-primary border-primary/20',
-    red: 'bg-red-500/10 text-red-500 border-red-500/20',
-    blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    green: 'bg-green-500/10 text-green-500 border-green-500/20',
-    purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  };
-
-  return (
-    <div className={cn(
-      "bg-gradient-to-br via-card/80 to-card border rounded-xl p-5 transition-all duration-200 hover:shadow-lg",
-      colorClasses[color]
-    )}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className={cn("p-2.5 rounded-xl border", iconColorClasses[color])}>
-          {icon}
-        </div>
-        <h3 className="font-semibold text-foreground">{title}</h3>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 export default function ControlsPage() {
   const { connectionState } = useDevice();
   const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{
-    type: 'reboot' | 'reboot-recovery' | 'reboot-bootloader';
-    title: string;
-    message: string;
-  } | null>(null);
+  const [result, setResult] = useState<{ type: 'ok' | 'error'; msg: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [brightness, setBrightness] = useState(128);
 
-  const showSuccess = (msg: string) => {
-    setSuccess(msg);
-    setTimeout(() => setSuccess(null), 2000);
+  const showResult = (type: 'ok' | 'error', msg: string) => {
+    setResult({ type, msg });
+    setTimeout(() => setResult(null), 2000);
   };
 
   const runCommand = useCallback(async (cmd: string, name: string) => {
     setLoading(name);
-    setError(null);
     try {
       await shell(cmd);
-      showSuccess(`${name} executed`);
+      showResult('ok', `${name} OK`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to execute ${name}`);
+      showResult('error', `${name} FAILED`);
     } finally {
       setLoading(null);
     }
   }, []);
 
-  // Reboot commands
   const handleReboot = async (type: 'normal' | 'recovery' | 'bootloader') => {
     setConfirmAction(null);
     const cmd = type === 'normal' ? 'reboot' : `reboot ${type}`;
-    await runCommand(cmd, `Reboot to ${type}`);
+    await runCommand(cmd, `REBOOT ${type.toUpperCase()}`);
   };
 
-  // Screen controls
-  const toggleScreen = () => runCommand('input keyevent 26', 'Toggle screen');
-  const unlockScreen = () => runCommand('input swipe 540 1800 540 800', 'Unlock swipe');
+  const toggleScreen = () => runCommand('input keyevent 26', 'TOGGLE SCREEN');
+  const unlockScreen = () => runCommand('input swipe 540 1800 540 800', 'UNLOCK');
+  const volumeUp = () => runCommand('input keyevent 24', 'VOL UP');
+  const volumeDown = () => runCommand('input keyevent 25', 'VOL DOWN');
+  const volumeMute = () => runCommand('input keyevent 164', 'MUTE');
 
-  // Volume controls
-  const volumeUp = () => runCommand('input keyevent 24', 'Volume up');
-  const volumeDown = () => runCommand('input keyevent 25', 'Volume down');
-  const volumeMute = () => runCommand('input keyevent 164', 'Mute');
-
-  // Brightness
   const setBrightnessLevel = async (level: number) => {
     setBrightness(level);
-    await runCommand(`settings put system screen_brightness ${level}`, 'Set brightness');
+    await runCommand(`settings put system screen_brightness ${level}`, 'BRIGHTNESS');
   };
 
-  // Toggles
-  const toggleWifi = () => runCommand('svc wifi disable && svc wifi enable', 'Toggle WiFi');
-  const toggleAirplane = () => runCommand('settings put global airplane_mode_on 1 && am broadcast -a android.intent.action.AIRPLANE_MODE', 'Toggle Airplane');
-  const toggleStayAwake = () => runCommand('svc power stayon true', 'Stay awake on');
-  const disableStayAwake = () => runCommand('svc power stayon false', 'Stay awake off');
+  const toggleWifi = () => runCommand('svc wifi disable && svc wifi enable', 'WIFI');
+  const toggleAirplane = () => runCommand('settings put global airplane_mode_on 1 && am broadcast -a android.intent.action.AIRPLANE_MODE', 'AIRPLANE');
+  const toggleStayAwake = () => runCommand('svc power stayon true', 'STAY AWAKE ON');
+  const disableStayAwake = () => runCommand('svc power stayon false', 'STAY AWAKE OFF');
 
-  // Input text
   const sendText = async () => {
     if (!inputText.trim()) return;
-    // Escape special characters for shell
     const escaped = inputText.replace(/(['"\\$`])/g, '\\$1').replace(/ /g, '%s');
-    await runCommand(`input text "${escaped}"`, 'Send text');
+    await runCommand(`input text "${escaped}"`, 'SEND TEXT');
     setInputText('');
   };
 
-  // Key event
   const sendKeyEvent = (keycode: number, label: string) => {
     runCommand(`input keyevent ${keycode}`, label);
   };
@@ -224,12 +82,19 @@ export default function ControlsPage() {
   if (connectionState !== 'connected') {
     return (
       <PageLayout>
-        <div className="h-full flex items-center justify-center p-8">
-          <EmptyState
-            title="No Device Connected"
-            description="Connect an Android device via USB to use device controls."
-            icon={<Sliders className="w-16 h-16 text-muted-foreground/30" />}
-          />
+        <div className="h-full flex items-center justify-center p-8 font-mono">
+          <div className="text-center">
+            <pre className="text-muted-foreground mb-4 text-xs">
+{`  ______
+ |  []  |
+ | CTRL |
+ |______|`}
+            </pre>
+            <div className="text-sm mb-2">CONTROLS DISCONNECTED</div>
+            <div className="text-xs text-muted-foreground">
+              Connect a device to use controls.
+            </div>
+          </div>
         </div>
       </PageLayout>
     );
@@ -237,310 +102,238 @@ export default function ControlsPage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col overflow-hidden bg-background">
+      <div className="h-full flex flex-col font-mono overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <Sliders className="w-5 h-5" />
-            </div>
+        <div className="border-b border-border p-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Device Controls</h1>
-              <p className="text-xs text-muted-foreground">Remote device management</p>
+              <h1 className="text-sm uppercase tracking-wider">CONTROLS // REMOTE</h1>
+              <div className="text-xs text-muted-foreground mt-1">
+                DEVICE MANAGEMENT
+              </div>
             </div>
-          </div>
-          <AnimatePresence>
-            {success && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg text-green-600 dark:text-green-400"
-              >
-                <Check className="w-4 h-4" />
-                <span className="text-sm font-medium">{success}</span>
-              </motion.div>
+            {result && (
+              <div className={cn(
+                "text-xs px-2 py-1 border",
+                result.type === 'ok' ? "border-green-500 text-green-500" : "border-red-500 text-red-500"
+              )}>
+                {result.msg}
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
 
-        {/* Error */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mx-6 mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center gap-3"
-            >
-              <X className="w-4 h-4 text-destructive shrink-0" />
-              <p className="text-sm text-destructive font-medium">{error}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl">
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6 bg-muted/20 scrollbar-thin scrollbar-thumb-muted-foreground/20">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl">
-            {/* Power / Reboot */}
-            <ControlSection title="Power" icon={<Power className="w-5 h-5" />} color="red">
-              <div className="space-y-2">
-                <Button
-                  variant="secondary"
-                  size="small"
-                  onClick={() => setConfirmAction({
-                    type: 'reboot',
-                    title: 'Reboot Device',
-                    message: 'Are you sure you want to reboot the device?',
-                  })}
+            {/* Power Section */}
+            <div className="border border-border p-4">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">POWER</div>
+              <div className="space-y-2 text-xs">
+                <button
+                  onClick={() => setConfirmAction('reboot')}
                   disabled={loading !== null}
-                  className="w-full justify-start"
-                  icon={<RefreshCw className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
                 >
-                  Reboot
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="small"
-                  onClick={() => setConfirmAction({
-                    type: 'reboot-recovery',
-                    title: 'Reboot to Recovery',
-                    message: 'This will reboot the device into recovery mode.',
-                  })}
+                  [ REBOOT ]
+                </button>
+                <button
+                  onClick={() => setConfirmAction('recovery')}
                   disabled={loading !== null}
-                  className="w-full justify-start"
-                  icon={<RotateCcw className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
                 >
-                  Recovery Mode
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="small"
-                  onClick={() => setConfirmAction({
-                    type: 'reboot-bootloader',
-                    title: 'Reboot to Bootloader',
-                    message: 'This will reboot the device into bootloader/fastboot mode.',
-                  })}
+                  [ RECOVERY MODE ]
+                </button>
+                <button
+                  onClick={() => setConfirmAction('bootloader')}
                   disabled={loading !== null}
-                  className="w-full justify-start"
-                  icon={<HardDrive className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
                 >
-                  Bootloader Mode
-                </Button>
+                  [ BOOTLOADER ]
+                </button>
               </div>
-            </ControlSection>
+            </div>
 
-            {/* Screen */}
-            <ControlSection title="Screen" icon={<Smartphone className="w-5 h-5" />} color="blue">
-              <div className="space-y-2">
-                <Button
-                  variant="secondary"
-                  size="small"
+            {/* Screen Section */}
+            <div className="border border-border p-4">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">SCREEN</div>
+              <div className="space-y-2 text-xs">
+                <button
                   onClick={toggleScreen}
                   disabled={loading !== null}
-                  className="w-full justify-start"
-                  icon={<Power className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
                 >
-                  Toggle Screen On/Off
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="small"
+                  [ TOGGLE ON/OFF ]
+                </button>
+                <button
                   onClick={unlockScreen}
                   disabled={loading !== null}
-                  className="w-full justify-start"
-                  icon={<Lock className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
                 >
-                  Swipe to Unlock
-                </Button>
+                  [ SWIPE UNLOCK ]
+                </button>
               </div>
-            </ControlSection>
+            </div>
 
-            {/* Volume */}
-            <ControlSection title="Volume" icon={<Volume2 className="w-5 h-5" />} color="green">
-              <div className="flex gap-2">
+            {/* Volume Section */}
+            <div className="border border-border p-4">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">VOLUME</div>
+              <div className="flex gap-2 text-xs">
                 <button
                   onClick={volumeDown}
                   disabled={loading !== null}
-                  className="flex-1 p-3 rounded-lg bg-muted/50 hover:bg-muted border border-border/50 transition-all hover:scale-105 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
                 >
-                  <Minus className="w-5 h-5 mx-auto" />
+                  [ - ]
                 </button>
                 <button
                   onClick={volumeMute}
                   disabled={loading !== null}
-                  className="flex-1 p-3 rounded-lg bg-muted/50 hover:bg-muted border border-border/50 transition-all hover:scale-105 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
                 >
-                  <VolumeX className="w-5 h-5 mx-auto" />
+                  [ X ]
                 </button>
                 <button
                   onClick={volumeUp}
                   disabled={loading !== null}
-                  className="flex-1 p-3 rounded-lg bg-muted/50 hover:bg-muted border border-border/50 transition-all hover:scale-105 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
                 >
-                  <Plus className="w-5 h-5 mx-auto" />
+                  [ + ]
                 </button>
               </div>
-            </ControlSection>
+            </div>
 
-            {/* Brightness */}
-            <ControlSection title="Brightness" icon={<Sun className="w-5 h-5" />} color="amber">
-              <div className="space-y-3">
-                <div className="relative">
-                  <input
-                    type="range"
-                    min="0"
-                    max="255"
-                    value={brightness}
-                    onChange={(e) => setBrightnessLevel(Number(e.target.value))}
-                    className="w-full h-2 bg-muted rounded-full appearance-none cursor-pointer accent-amber-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer"
-                    disabled={loading !== null}
-                  />
-                </div>
-                <div className="flex justify-between items-center">
-                  <Sun className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-mono font-medium bg-muted/50 px-2 py-0.5 rounded">
-                    {Math.round((brightness / 255) * 100)}%
-                  </span>
-                  <Sun className="w-5 h-5 text-amber-500" />
-                </div>
+            {/* Brightness Section */}
+            <div className="border border-border p-4">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
+                BRIGHTNESS: {Math.round((brightness / 255) * 100)}%
               </div>
-            </ControlSection>
+              <input
+                type="range"
+                min="0"
+                max="255"
+                value={brightness}
+                onChange={(e) => setBrightnessLevel(Number(e.target.value))}
+                disabled={loading !== null}
+                className="w-full h-2 bg-muted accent-orange-500 cursor-pointer disabled:opacity-50"
+              />
+            </div>
 
-            {/* Toggles */}
-            <ControlSection title="Connectivity" icon={<Wifi className="w-5 h-5" />} color="purple">
-              <div className="space-y-2">
-                <Button
-                  variant="secondary"
-                  size="small"
+            {/* Connectivity Section */}
+            <div className="border border-border p-4">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">CONNECTIVITY</div>
+              <div className="space-y-2 text-xs">
+                <button
                   onClick={toggleWifi}
                   disabled={loading !== null}
-                  className="w-full justify-start"
-                  icon={<Wifi className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
                 >
-                  Toggle WiFi
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="small"
+                  [ TOGGLE WIFI ]
+                </button>
+                <button
                   onClick={toggleAirplane}
                   disabled={loading !== null}
-                  className="w-full justify-start"
-                  icon={<Plane className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
                 >
-                  Toggle Airplane Mode
-                </Button>
-                <div className="flex gap-2 pt-2 border-t border-border/30">
-                  <Button
-                    variant="secondary"
-                    size="small"
+                  [ AIRPLANE MODE ]
+                </button>
+                <div className="flex gap-2">
+                  <button
                     onClick={toggleStayAwake}
                     disabled={loading !== null}
-                    className="flex-1"
+                    className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
                   >
-                    Stay Awake
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="small"
+                    AWAKE
+                  </button>
+                  <button
                     onClick={disableStayAwake}
                     disabled={loading !== null}
-                    className="flex-1"
+                    className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
                   >
-                    Sleep
-                  </Button>
+                    SLEEP
+                  </button>
                 </div>
               </div>
-            </ControlSection>
+            </div>
 
-            {/* Text Input */}
-            <ControlSection title="Text Input" icon={<Keyboard className="w-5 h-5" />} color="primary">
-              <div className="space-y-3">
+            {/* Text Input Section */}
+            <div className="border border-border p-4">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">TEXT INPUT</div>
+              <div className="space-y-2 text-xs">
                 <input
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && sendText()}
-                  placeholder="Type text to send..."
-                  className="w-full text-sm bg-muted/30 border border-border rounded-lg px-3 py-2 text-foreground outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                  placeholder="Type text..."
                   disabled={loading !== null}
+                  className="w-full bg-transparent border border-border px-2 py-1 outline-none focus:border-orange-500 disabled:opacity-50"
                 />
-                <Button
-                  variant="primary"
-                  size="small"
+                <button
                   onClick={sendText}
                   disabled={loading !== null || !inputText.trim()}
-                  className="w-full"
-                  icon={<Send className="w-4 h-4" />}
+                  className="w-full px-3 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/10 disabled:opacity-50"
                 >
-                  Send Text
-                </Button>
+                  [ SEND ]
+                </button>
               </div>
-            </ControlSection>
-
-            {/* Key Events - spans full width on larger screens */}
-            <div className="md:col-span-2 lg:col-span-3">
-              <ControlSection title="Hardware Keys" icon={<Grid3X3 className="w-5 h-5" />} color="primary">
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                  {KEY_EVENTS.map((key) => {
-                    const IconComponent = key.icon;
-                    return (
-                      <button
-                        key={key.keycode}
-                        onClick={() => sendKeyEvent(key.keycode, key.label)}
-                        disabled={loading !== null}
-                        className={cn(
-                          'flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all duration-200',
-                          'bg-muted/30 border border-border/50',
-                          'hover:bg-muted hover:border-primary/30 hover:shadow-md hover:scale-105',
-                          'active:scale-95',
-                          'disabled:opacity-50 disabled:cursor-not-allowed'
-                        )}
-                      >
-                        <IconComponent className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-xs font-medium text-foreground">{key.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </ControlSection>
             </div>
+
+            {/* Hardware Keys Section - Full Width */}
+            <div className="border border-border p-4 md:col-span-2 lg:col-span-3">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">HARDWARE KEYS</div>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 text-xs">
+                {KEY_EVENTS.map((key) => (
+                  <button
+                    key={key.keycode}
+                    onClick={() => sendKeyEvent(key.keycode, key.label)}
+                    disabled={loading !== null}
+                    className="px-3 py-2 border border-border hover:bg-muted hover:border-orange-500 disabled:opacity-50 text-center"
+                  >
+                    {key.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
 
-        {/* Confirmation dialogs */}
-        <AnimatePresence>
-          {confirmAction?.type === 'reboot' && (
-            <ConfirmDialog
-              title={confirmAction.title}
-              message={confirmAction.message}
-              confirmLabel="Reboot"
-              icon={<RefreshCw className="w-6 h-6" />}
-              onConfirm={() => handleReboot('normal')}
-              onCancel={() => setConfirmAction(null)}
-            />
-          )}
-          {confirmAction?.type === 'reboot-recovery' && (
-            <ConfirmDialog
-              title={confirmAction.title}
-              message={confirmAction.message}
-              confirmLabel="Reboot to Recovery"
-              icon={<RotateCcw className="w-6 h-6" />}
-              onConfirm={() => handleReboot('recovery')}
-              onCancel={() => setConfirmAction(null)}
-            />
-          )}
-          {confirmAction?.type === 'reboot-bootloader' && (
-            <ConfirmDialog
-              title={confirmAction.title}
-              message={confirmAction.message}
-              confirmLabel="Reboot to Bootloader"
-              icon={<HardDrive className="w-6 h-6" />}
-              onConfirm={() => handleReboot('bootloader')}
-              onCancel={() => setConfirmAction(null)}
-            />
-          )}
-        </AnimatePresence>
+        {/* Confirmation Modal */}
+        {confirmAction && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="border border-border bg-background p-4 w-80">
+              <div className="text-xs text-muted-foreground uppercase tracking-wider mb-3">CONFIRM</div>
+              <div className="text-sm mb-4">
+                {confirmAction === 'reboot' && 'Reboot device?'}
+                {confirmAction === 'recovery' && 'Reboot to recovery mode?'}
+                {confirmAction === 'bootloader' && 'Reboot to bootloader?'}
+              </div>
+              <div className="flex justify-end gap-2 text-xs">
+                <button
+                  onClick={() => setConfirmAction(null)}
+                  className="px-3 py-1 border border-border hover:bg-muted"
+                >
+                  [ CANCEL ]
+                </button>
+                <button
+                  onClick={() => handleReboot(confirmAction as 'normal' | 'recovery' | 'bootloader')}
+                  className="px-3 py-1 border border-red-500 text-red-500 hover:bg-red-500/10"
+                >
+                  [ CONFIRM ]
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
+          <div className="text-[10px] text-zinc-600">
+            SEND COMMANDS | CONTROL DEVICE REMOTELY
+          </div>
+        </div>
       </div>
     </PageLayout>
   );

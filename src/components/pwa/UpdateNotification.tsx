@@ -65,7 +65,7 @@ export function UpdateNotification() {
         <DialogHeader>
           <DialogTitle>Update Available</DialogTitle>
           <DialogDescription>
-            A new version of SuperrWrench is ready. Refresh to get the latest features and
+            A new version of ADB Wrench is ready. Refresh to get the latest features and
             improvements.
           </DialogDescription>
         </DialogHeader>
