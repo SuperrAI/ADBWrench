@@ -1,26 +1,12 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import PageLayout from '@/design-system/patterns/PageLayout/PageLayout';
+import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Button } from '@/design-system/components/Button';
 import { shellStream, pullFile } from '@/services/adb';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import {
-  Bug,
-  Play,
-  Square,
-  Download,
-  Check,
-  X,
-  AlertCircle,
-  Clock,
-  Info,
-  FileArchive,
-  Loader2
-} from 'lucide-react';
+import { TerminalSpinner, TerminalProgressBar } from '@/components/ui/TerminalUI';
 
 interface BugreportEntry {
   id: string;
@@ -33,7 +19,6 @@ interface BugreportEntry {
   error?: string;
 }
 
-// Estimated time for bugreport generation (typically 2-5 minutes)
 const ESTIMATED_DURATION_MS = 180000; // 3 minutes
 
 export default function BugreportPage() {
@@ -47,7 +32,6 @@ export default function BugreportPage() {
   const abortRef = useRef<{ exit: () => void } | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Start bugreport generation
   const startBugreport = useCallback(async () => {
     if (isGenerating) return;
 
@@ -65,7 +49,6 @@ export default function BugreportPage() {
     setCurrentReport(newReport);
     setIsGenerating(true);
 
-    // Start progress estimation
     progressIntervalRef.current = setInterval(() => {
       setCurrentReport((prev) => {
         if (!prev || prev.status !== 'generating') return prev;
@@ -76,16 +59,13 @@ export default function BugreportPage() {
     }, 1000);
 
     try {
-      // Try bugreportz first (creates ZIP directly), fall back to bugreport
       let output = '';
       let bugreportPath = '';
 
-      // Use bugreportz which outputs path to the generated file
       const stream = await shellStream(
         'bugreportz',
         (data) => {
           output += data;
-          // Parse progress from bugreportz output
           const progressMatch = data.match(/(\d+)\/(\d+)/);
           if (progressMatch) {
             const current = parseInt(progressMatch[1], 10);
@@ -104,10 +84,8 @@ export default function BugreportPage() {
 
       abortRef.current = stream;
 
-      // Wait for completion by checking output
       await new Promise<void>((resolve, reject) => {
         const checkInterval = setInterval(async () => {
-          // Check if bugreportz completed
           if (output.includes('OK:')) {
             clearInterval(checkInterval);
             const pathMatch = output.match(/OK:\s*(.+\.zip)/);
@@ -121,7 +99,6 @@ export default function BugreportPage() {
           }
         }, 1000);
 
-        // Timeout after 10 minutes
         setTimeout(() => {
           clearInterval(checkInterval);
           if (!bugreportPath) {
@@ -134,7 +111,6 @@ export default function BugreportPage() {
         clearInterval(progressIntervalRef.current);
       }
 
-      // Update report with success
       const completedReport: BugreportEntry = {
         ...newReport,
         status: 'completed',
@@ -167,7 +143,6 @@ export default function BugreportPage() {
     }
   }, [isGenerating]);
 
-  // Cancel bugreport generation
   const cancelBugreport = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.exit();
@@ -194,7 +169,6 @@ export default function BugreportPage() {
     toast.info('Bugreport cancelled');
   }, []);
 
-  // Download bugreport
   const downloadBugreport = useCallback(async (report: BugreportEntry) => {
     if (!report.path) {
       toast.error('No bugreport file path available');
@@ -221,7 +195,6 @@ export default function BugreportPage() {
     }
   }, []);
 
-  // Format duration
   const formatDuration = (ms: number): string => {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -229,7 +202,6 @@ export default function BugreportPage() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Get estimated time remaining
   const getEstimatedRemaining = (report: BugreportEntry): string => {
     if (report.status !== 'generating') return '-';
     const elapsed = Date.now() - report.startTime;
@@ -237,20 +209,35 @@ export default function BugreportPage() {
     return `~${formatDuration(remaining)}`;
   };
 
-  // Format timestamp
   const formatTime = (timestamp: number): string => {
     return new Date(timestamp).toLocaleTimeString();
+  };
+
+  const getStatusIndicator = (status: string) => {
+    switch (status) {
+      case 'completed': return { text: '[OK]', color: 'text-green-500' };
+      case 'failed': return { text: '[FAIL]', color: 'text-red-500' };
+      case 'cancelled': return { text: '[STOP]', color: 'text-orange-500' };
+      default: return { text: '[...]', color: 'text-muted-foreground' };
+    }
   };
 
   if (!isConnected) {
     return (
       <PageLayout>
-        <div className="h-full flex items-center justify-center p-6">
-          <EmptyState
-            title="No Device Connected"
-            description="Connect an Android device to generate bugreports."
-            icon={<Bug className="w-16 h-16 text-muted-foreground/30" />}
-          />
+        <div className="h-full flex items-center justify-center p-8 font-mono">
+          <div className="text-center">
+            <pre className="text-muted-foreground mb-4 text-xs">
+{`  _______
+ |  BUG  |
+ | [ZIP] |
+ |_______|`}
+            </pre>
+            <div className="text-sm mb-2">BUGREPORT DISCONNECTED</div>
+            <div className="text-xs text-muted-foreground">
+              Connect a device to generate bugreports.
+            </div>
+          </div>
         </div>
       </PageLayout>
     );
@@ -258,169 +245,141 @@ export default function BugreportPage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col overflow-hidden bg-background">
+      <div className="h-full flex flex-col font-mono overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-card/30 backdrop-blur-sm shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <Bug className="w-5 h-5" />
-            </div>
+        <div className="border-b border-border p-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Bugreport Generator</h1>
-              <p className="text-xs text-muted-foreground">Generate diagnostic reports</p>
+              <h1 className="text-sm uppercase tracking-wider">BUGREPORT // GENERATOR</h1>
+              <div className="text-xs text-muted-foreground mt-1">
+                {isGenerating ? 'GENERATING...' : 'READY'}
+              </div>
             </div>
+
+            <button
+              onClick={isGenerating ? cancelBugreport : startBugreport}
+              className={cn(
+                "px-3 py-1 border text-xs",
+                isGenerating
+                  ? "border-red-500 text-red-500 hover:bg-red-500/10"
+                  : "border-green-500 text-green-500 hover:bg-green-500/10"
+              )}
+            >
+              [ {isGenerating ? 'CANCEL' : 'GENERATE'} ]
+            </button>
           </div>
-          <Button
-            variant={isGenerating ? 'warning' : 'primary'}
-            onClick={isGenerating ? cancelBugreport : startBugreport}
-            icon={isGenerating ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-          >
-            {isGenerating ? 'Cancel' : 'Generate Bugreport'}
-          </Button>
         </div>
 
-        <div className="flex-1 overflow-auto p-6 bg-muted/20 scrollbar-thin scrollbar-thumb-muted-foreground/20">
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
           {/* Info Box */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 flex gap-4">
-            <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400 h-fit">
-              <Info className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-blue-400 font-semibold mb-1">About Bugreports</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Bugreports contain comprehensive system logs, device state, and diagnostic information.
-                Generation typically takes 2-5 minutes. The resulting ZIP file can be analyzed using
-                Android Studio or shared with developers for debugging.
-              </p>
+          <div className="border border-border p-4">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">[i] ABOUT BUGREPORTS</div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Bugreports contain comprehensive system logs, device state, and diagnostic information.</p>
+              <p>Generation typically takes 2-5 minutes. The resulting ZIP file can be analyzed using Android Studio.</p>
             </div>
           </div>
 
           {/* Current Report Progress */}
           {currentReport && currentReport.status === 'generating' && (
-            <div className="bg-gradient-to-br from-primary/10 via-card/80 to-card border border-primary/30 rounded-xl p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Generating Bugreport</h3>
-                    <p className="text-muted-foreground text-sm flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5" />
-                      Started at {formatTime(currentReport.startTime)}
-                    </p>
+            <div className="border border-orange-500 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-sm uppercase">GENERATING BUGREPORT</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    STARTED: {formatTime(currentReport.startTime)}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-mono font-bold text-primary">{currentReport.progress}%</div>
-                  <div className="text-muted-foreground text-sm">
-                    Est. remaining: {getEstimatedRemaining(currentReport)}
+                  <div className="text-2xl font-bold text-orange-500">{currentReport.progress}%</div>
+                  <div className="text-xs text-muted-foreground">
+                    EST: {getEstimatedRemaining(currentReport)}
                   </div>
                 </div>
               </div>
 
-              {/* Progress Bar */}
-              <div className="h-3 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500 rounded-full"
-                  style={{ width: `${currentReport.progress}%` }}
-                />
-              </div>
+              <TerminalProgressBar value={currentReport.progress} width={40} showPercentage={false} />
 
-              <p className="text-muted-foreground text-sm mt-4 text-center">
-                Please wait... This may take several minutes.
-              </p>
+              <div className="text-xs text-muted-foreground mt-3 text-center">
+                <TerminalSpinner label="WORKING" /> | PLEASE WAIT...
+              </div>
             </div>
           )}
 
           {/* History */}
-          <div className="flex-1">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5" />
-              Report History
-            </h2>
+          <div className="border border-border">
+            <div className="p-3 border-b border-border">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                REPORT HISTORY ({history.length})
+              </div>
+            </div>
 
             {history.length === 0 ? (
-              <div className="bg-card/50 border border-border/50 rounded-xl p-8 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                  <FileArchive className="w-8 h-8 text-muted-foreground/30" />
-                </div>
-                <p className="text-foreground font-medium mb-1">No bugreports generated yet</p>
-                <p className="text-sm text-muted-foreground">Click &quot;Generate Bugreport&quot; to create one.</p>
+              <div className="text-center text-muted-foreground py-8 text-xs">
+                <pre className="mb-2">
+{`[ZIP]`}
+                </pre>
+                NO BUGREPORTS GENERATED YET
               </div>
             ) : (
-              <div className="space-y-3">
-                {history.map((report) => (
-                  <div
-                    key={report.id}
-                    className={cn(
-                      "bg-card/50 border rounded-xl p-4 flex items-center justify-between transition-all hover:shadow-md",
-                      report.status === 'completed' && "border-green-500/30 hover:border-green-500/50",
-                      report.status === 'failed' && "border-red-500/30 hover:border-red-500/50",
-                      report.status === 'cancelled' && "border-amber-500/30 hover:border-amber-500/50"
-                    )}
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Status Icon */}
-                      <div
-                        className={cn(
-                          "w-11 h-11 rounded-xl flex items-center justify-center border",
-                          report.status === 'completed' && "bg-green-500/10 text-green-500 border-green-500/30",
-                          report.status === 'failed' && "bg-red-500/10 text-red-500 border-red-500/30",
-                          report.status === 'cancelled' && "bg-amber-500/10 text-amber-500 border-amber-500/30"
-                        )}
-                      >
-                        {report.status === 'completed' && <Check className="w-5 h-5" />}
-                        {report.status === 'failed' && <X className="w-5 h-5" />}
-                        {report.status === 'cancelled' && <AlertCircle className="w-5 h-5" />}
-                      </div>
-
-                      <div>
-                        <div className="font-medium flex items-center gap-2">
-                          <FileArchive className="w-4 h-4 text-muted-foreground" />
-                          {report.filename}
-                        </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-0.5">
-                          <Clock className="w-3.5 h-3.5" />
-                          {formatTime(report.startTime)}
-                          {report.endTime && ` • ${formatDuration(report.endTime - report.startTime)}`}
-                        </div>
-                        {report.error && (
-                          <div className="text-sm text-red-400 mt-1 flex items-center gap-1">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            {report.error}
+              <div className="divide-y divide-border text-xs">
+                {history.map((report) => {
+                  const status = getStatusIndicator(report.status);
+                  return (
+                    <div
+                      key={report.id}
+                      className="flex items-center justify-between p-3 hover:bg-muted"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={cn("font-bold", status.color)}>{status.text}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span>[ZIP]</span>
+                            <span>{report.filename}</span>
                           </div>
+                          <div className="text-muted-foreground mt-1">
+                            {formatTime(report.startTime)}
+                            {report.endTime && ` | ${formatDuration(report.endTime - report.startTime)}`}
+                          </div>
+                          {report.error && (
+                            <div className="text-red-500 mt-1">[!] {report.error}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {report.status === 'completed' && report.path && (
+                          <button
+                            onClick={() => downloadBugreport(report)}
+                            className="px-2 py-1 border border-green-500 text-green-500 hover:bg-green-500/10"
+                          >
+                            [ DOWNLOAD ]
+                          </button>
                         )}
+                        <span className={cn(
+                          "px-2 py-1 border",
+                          report.status === 'completed' && "border-green-500 text-green-500",
+                          report.status === 'failed' && "border-red-500 text-red-500",
+                          report.status === 'cancelled' && "border-orange-500 text-orange-500"
+                        )}>
+                          {report.status.toUpperCase()}
+                        </span>
                       </div>
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-3">
-                      {report.status === 'completed' && report.path && (
-                        <Button
-                          variant="primary"
-                          size="small"
-                          onClick={() => downloadBugreport(report)}
-                          icon={<Download className="w-4 h-4" />}
-                        >
-                          Download
-                        </Button>
-                      )}
-                      <span
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-medium",
-                          report.status === 'completed' && "bg-green-500/10 text-green-500 border border-green-500/30",
-                          report.status === 'failed' && "bg-red-500/10 text-red-500 border border-red-500/30",
-                          report.status === 'cancelled' && "bg-amber-500/10 text-amber-500 border border-amber-500/30"
-                        )}
-                      >
-                        {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
+          <div className="text-[10px] text-zinc-600">
+            GENERATE DIAGNOSTIC REPORTS | BUGREPORTZ
           </div>
         </div>
       </div>

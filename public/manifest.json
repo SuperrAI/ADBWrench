@@ -1,6 +1,6 @@
 {
-  "name": "SuperrWrench",
-  "short_name": "Wrench",
+  "name": "ADB Wrench",
+  "short_name": "ADB Wrench",
   "description": "Browser-based Android device debugging and management tool",
   "start_url": "/",
   "display": "standalone",

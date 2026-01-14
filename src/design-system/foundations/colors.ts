@@ -1,8 +1,8 @@
 /**
  * Colors Foundation
- * 
- * This file defines the color system for the application.
- * It includes all color tokens used throughout the UI.
+ *
+ * Terminal-inspired color system: Black, White, and Orange accent.
+ * Flat, paper-like aesthetic with minimal color usage.
  */
 
 // Core Colors - foundational colors
@@ -11,18 +11,7 @@ export const CoreColors = {
   Black: '#000000',
 }
 
-// Semantic Colors - purpose-based naming
-export const SemanticColors = {
-  Primary: 'var(--blue)',
-  Secondary: 'var(--neutral)',
-  Error: 'var(--red)',
-  Warning: 'var(--amber)',
-  Success: 'var(--green)',
-  Info: 'var(--blue)',
-  Accent: 'var(--orange)',
-}
-
-// Color scales - organized for better maintenance
+// Neutral scale - for borders, muted text, backgrounds
 export const Neutral = {
   N50: '#FAFAFA',
   N100: '#F5F5F5',
@@ -37,55 +26,14 @@ export const Neutral = {
   N950: '#0A0A0A',
 }
 
-export const Blue = {
-  B50: '#EFF6FF',
-  B100: '#DBEAFE',
-  B200: '#BFDBFE',
-  B300: '#93C5FD',
-  B400: '#60A5FA',
-  B500: '#3B82F6',
-  B600: '#2563EB',
-  B700: '#1D4ED8',
-  B800: '#1E40AF',
-  B900: '#1E3A8A',
-  B950: '#172554',
-}
-
-export const Green = {
-  G50: '#F0FDF4',
-  G100: '#DCFCE7',
-  G200: '#BBF7D0',
-  G300: '#86EFAC',
-  G400: '#4ADE80',
-  G500: '#22C55E',
-  G600: '#16A34A',
-  G700: '#15803D',
-  G800: '#166534',
-  G900: '#14532D',
-  G950: '#052E16',
-}
-
-export const Red = {
-  R50: '#FEF2F2',
-  R100: '#FEE2E2',
-  R200: '#FECACA',
-  R300: '#FCA5A5',
-  R400: '#F87171',
-  R500: '#EF4444',
-  R600: '#DC2626',
-  R700: '#B91C1C',
-  R800: '#991B1B',
-  R900: '#7F1D1D',
-  R950: '#450A0A',
-}
-
+// Orange - primary accent color
 export const Orange = {
   O50: '#FFF8F5',
   O100: '#FFEDE5',
   O200: '#FFDCCB',
   O300: '#FFBEA0',
   O400: '#FF9662',
-  O500: '#FF6F1E',
+  O500: '#FF6F1E',  // Primary accent
   O600: '#E85A0C',
   O700: '#C44600',
   O800: '#9C3700',
@@ -93,21 +41,58 @@ export const Orange = {
   O950: '#451A00',
 }
 
-export const Amber = {
-  A50: '#FFFBEB',
-  A100: '#FEF3C7',
-  A200: '#FDE68A',
-  A300: '#FCD34D',
-  A400: '#FBBF24',
-  A500: '#F59E0B',
-  A600: '#D97706',
-  A700: '#B45309',
-  A800: '#92400E',
-  A900: '#78350F',
-  A950: '#451A03',
+// Minimal status colors (kept for error/success states)
+export const Green = {
+  G500: '#22C55E',
+  G600: '#16A34A',
 }
 
-// Theme color schemes
+export const Red = {
+  R500: '#EF4444',
+  R600: '#DC2626',
+}
+
+// Semantic Colors - purpose-based naming
+export const SemanticColors = {
+  Primary: CoreColors.Black,
+  Secondary: Neutral.N500,
+  Error: Red.R500,
+  Warning: Orange.O500,
+  Success: Green.G500,
+  Info: Neutral.N500,
+  Accent: Orange.O500,
+}
+
+// Terminal Theme - flat, paper-like aesthetic
+export const TerminalTheme = {
+  // Backgrounds
+  bg: CoreColors.White,
+  bgAlt: Neutral.N100,
+  bgDark: CoreColors.Black,
+
+  // Text
+  text: CoreColors.Black,
+  textMuted: Neutral.N500,
+  textInverse: CoreColors.White,
+
+  // Borders - use instead of shadows
+  border: Neutral.N200,
+  borderStrong: CoreColors.Black,
+  borderMuted: Neutral.N100,
+
+  // Accent (Orange)
+  accent: Orange.O500,
+  accentLight: Orange.O50,
+  accentDark: Orange.O700,
+  accentHover: Orange.O600,
+
+  // Status
+  success: Green.G500,
+  error: Red.R500,
+  warning: Orange.O500,
+}
+
+// Light Theme (compatible with existing usage)
 export const LightTheme = {
   primary: CoreColors.Black,
   onPrimary: CoreColors.White,
@@ -137,12 +122,11 @@ export const colors = {
   core: CoreColors,
   semantic: SemanticColors,
   neutral: Neutral,
-  blue: Blue,
+  orange: Orange,
   green: Green,
   red: Red,
-  orange: Orange,
-  amber: Amber,
   light: LightTheme,
+  terminal: TerminalTheme,
 }
 
-export default colors 
+export default colors

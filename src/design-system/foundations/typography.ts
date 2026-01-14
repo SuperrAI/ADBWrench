@@ -8,11 +8,9 @@
 
 export const typography = {
   fontFamily: {
-    sans: 'var(--font-geist-sans), sans-serif',
-    mono: 'var(--font-geist-mono), monospace',
-    kalam: 'var(--font-kalam), sans-serif',
-    shantell_sans: 'var(--font-shantell-sans), sans-serif',
-    // serif: 'Ivy Presto Headline, serif',
+    // IBM Plex Mono is the primary font for terminal aesthetic
+    mono: 'var(--font-ibm-plex-mono), monospace',
+    sans: 'var(--font-ibm-plex-mono), monospace', // Use mono as default
   },
   // Font size scale in pixels
   fontSize: {
@@ -48,28 +46,28 @@ export const typography = {
 export const textStyles = {
   // Heading styles
   h1: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.text3XL,
     lineHeight: typography.lineHeight.extraWide,
     fontWeight: typography.fontWeight.semibold,
     letterSpacing: typography.letterSpacing.none,
   },
   h2: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.text2XL,
     lineHeight: typography.lineHeight.wide,
     fontWeight: typography.fontWeight.semibold,
     letterSpacing: typography.letterSpacing.none,
   },
   h3: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textXL,
     lineHeight: typography.lineHeight.wide,
     fontWeight: typography.fontWeight.semibold,
     letterSpacing: typography.letterSpacing.none,
   },
   h4: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textL,
     lineHeight: typography.lineHeight.normal,
     fontWeight: typography.fontWeight.medium,
@@ -78,63 +76,63 @@ export const textStyles = {
 
   // Body text styles
   body1Reg: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textM,
     lineHeight: typography.lineHeight.normal,
     fontWeight: typography.fontWeight.regular,
     letterSpacing: typography.letterSpacing.none,
   },
   body1Med: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textM,
     lineHeight: typography.lineHeight.normal,
     fontWeight: typography.fontWeight.medium,
     letterSpacing: typography.letterSpacing.none,
   },
   body1Semi: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textM,
     lineHeight: typography.lineHeight.normal,
     fontWeight: typography.fontWeight.semibold,
     letterSpacing: typography.letterSpacing.none,
   },
   body1SemiLong: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textM,
     lineHeight: typography.lineHeight.relaxed,
     fontWeight: typography.fontWeight.regular,
     letterSpacing: typography.letterSpacing.none,
   },
   body2Reg: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textS,
     lineHeight: typography.lineHeight.tight,
     fontWeight: typography.fontWeight.regular,
     letterSpacing: typography.letterSpacing.none,
   },
   body2Med: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textS,
     lineHeight: typography.lineHeight.tight,
     fontWeight: typography.fontWeight.medium,
     letterSpacing: typography.letterSpacing.none,
   },
   body2Semi: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textS,
     lineHeight: typography.lineHeight.tight,
     fontWeight: typography.fontWeight.semibold,
     letterSpacing: typography.letterSpacing.none,
   },
   body3Semi: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textS,
     lineHeight: typography.lineHeight.normal,
     fontWeight: typography.fontWeight.medium,
     letterSpacing: typography.letterSpacing.none,
   },
   body3Med: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textL,
     lineHeight: typography.lineHeight.relaxed,
     fontWeight: typography.fontWeight.medium,
@@ -142,21 +140,21 @@ export const textStyles = {
   },
   // Label styles
   labelSansReg: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textXS,
     lineHeight: typography.lineHeight.compact,
     fontWeight: typography.fontWeight.regular,
     letterSpacing: typography.letterSpacing.none,
   },
   labelSansMed: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textXS,
     lineHeight: typography.lineHeight.compact,
     fontWeight: typography.fontWeight.medium,
     letterSpacing: typography.letterSpacing.none,
   },
   labelSansSemi: {
-    fontFamily: typography.fontFamily.sans,
+    fontFamily: typography.fontFamily.mono,
     fontSize: typography.fontSize.textXS,
     lineHeight: typography.lineHeight.compact,
     fontWeight: typography.fontWeight.semibold,
@@ -167,20 +165,6 @@ export const textStyles = {
     fontSize: typography.fontSize.textM,
     lineHeight: typography.lineHeight.normal,
     fontWeight: typography.fontWeight.medium,
-    letterSpacing: typography.letterSpacing.none,
-  },
-  kalam: {
-    fontFamily: typography.fontFamily.kalam,
-    fontSize: typography.fontSize.textM,
-    lineHeight: typography.lineHeight.normal,
-    fontWeight: typography.fontWeight.semibold,
-    letterSpacing: typography.letterSpacing.none,
-  },
-  shantell_sans: {
-    fontFamily: typography.fontFamily.shantell_sans,
-    fontSize: typography.fontSize.textM,
-    lineHeight: typography.lineHeight.normal,
-    fontWeight: typography.fontWeight.semibold,
     letterSpacing: typography.letterSpacing.none,
   },
 };

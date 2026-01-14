@@ -7,13 +7,13 @@ import { Button } from '@/design-system/components/Button';
 import { Pill } from '@/design-system/components/Pills';
 import { ThemeToggle } from './ThemeToggle';
 import { textStyles } from '@/design-system/foundations/typography';
-import { Green, Red, Amber, Neutral } from '@/design-system/foundations/colors';
+import { Green, Red, Orange, Neutral } from '@/design-system/foundations/colors';
 
 // Status indicator dot
 const StatusDot = ({ state }: { state: ConnectionState }) => {
   const colors: Record<ConnectionState, string> = {
     disconnected: Neutral.N400,
-    connecting: Amber.A500,
+    connecting: Orange.O500,
     unauthorized: Red.R500,
     connected: Green.G500,
   };
@@ -144,7 +144,7 @@ export function TopBar({ className }: TopBarProps) {
 
         {/* Unauthorized message */}
         {connectionState === 'unauthorized' && (
-          <span className="text-sm" style={{ color: Amber.A600 }}>
+          <span className="text-sm" style={{ color: Orange.O600 }}>
             Please accept the USB debugging prompt on your device
           </span>
         )}
