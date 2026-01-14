@@ -329,10 +329,10 @@ export default function ControlsPage() {
         )}
 
         {/* Footer */}
-        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background">
-          <div className="text-[10px] text-muted-foreground">
+        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background flex items-center">
+          <span className="text-[10px] text-muted-foreground">
             SEND COMMANDS | CONTROL DEVICE REMOTELY
-          </div>
+          </span>
         </div>
       </div>
     </PageLayout>
