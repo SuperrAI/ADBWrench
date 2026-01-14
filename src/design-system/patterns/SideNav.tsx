@@ -63,7 +63,7 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
         className={cn(
           'flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors',
           isActive
-            ? 'bg-foreground text-background'
+            ? 'text-orange-500 bg-orange-500/10'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted'
         )}
       >
@@ -105,7 +105,6 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
       <div className="p-3 border-b border-border flex-shrink-0">
         <Link href="/">
           <div className="font-mono text-sm uppercase tracking-wider">ADB Wrench</div>
-          <div className="font-mono text-xs text-muted-foreground mt-1">v1.0.0</div>
         </Link>
       </div>
 
@@ -163,9 +162,9 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
           </button>
         )}
 
-        {/* Theme Toggle */}
+        {/* Footer with Version & Theme Toggle */}
         <div className="px-3 border-t border-border flex items-center justify-between min-h-[36px]">
-          <span className="font-mono text-[10px] text-muted-foreground">Theme</span>
+          <span className="font-mono text-[10px] text-muted-foreground">v1.0.0</span>
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
