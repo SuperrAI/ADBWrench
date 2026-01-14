@@ -186,12 +186,10 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
           </div>
         ) : (
           <>
-            {messages.map((message, idx) => (
+            {messages.map((message) => (
               <ChatMessage
                 key={message.id}
                 message={message}
-                isStreaming={isLoading && idx === messages.length - 1 && message.role === 'assistant'}
-                streamingContent={streamingContent}
                 onExecute={handleExecuteCommand}
               />
             ))}
