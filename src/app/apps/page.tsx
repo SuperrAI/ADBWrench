@@ -257,7 +257,7 @@ export default function AppsPage() {
         </div>
 
         {/* Detail Panel */}
-        <div className="w-[320px] flex-shrink-0 flex flex-col overflow-hidden bg-zinc-950">
+        <div className="w-[320px] flex-shrink-0 flex flex-col overflow-hidden bg-background border-l border-border">
           {selectedPkgName ? (
             <>
               {/* Detail Header */}
@@ -282,31 +282,31 @@ export default function AppsPage() {
                     {/* Package Name */}
                     <div>
                       <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">PACKAGE</div>
-                      <div className="text-zinc-300 break-all">{packageDetails.packageName}</div>
+                      <div className="text-foreground break-all">{packageDetails.packageName}</div>
                     </div>
 
                     {/* Version */}
                     <div>
                       <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">VERSION</div>
-                      <div className="text-zinc-300">{packageDetails.versionName} ({packageDetails.versionCode})</div>
+                      <div className="text-foreground">{packageDetails.versionName} ({packageDetails.versionCode})</div>
                     </div>
 
                     {/* Dates */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">INSTALLED</div>
-                        <div className="text-zinc-400">{packageDetails.firstInstallTime?.split(' ')[0] || '--'}</div>
+                        <div className="text-muted-foreground">{packageDetails.firstInstallTime?.split(' ')[0] || '--'}</div>
                       </div>
                       <div>
                         <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">UPDATED</div>
-                        <div className="text-zinc-400">{packageDetails.lastUpdateTime?.split(' ')[0] || '--'}</div>
+                        <div className="text-muted-foreground">{packageDetails.lastUpdateTime?.split(' ')[0] || '--'}</div>
                       </div>
                     </div>
 
                     {/* Path */}
                     <div>
                       <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">PATH</div>
-                      <div className="text-zinc-400 text-[10px] break-all">{packageDetails.installedPath}</div>
+                      <div className="text-muted-foreground text-[10px] break-all">{packageDetails.installedPath}</div>
                     </div>
 
                     {/* Actions */}
@@ -353,11 +353,11 @@ export default function AppsPage() {
                       </div>
                       <div className="max-h-32 overflow-y-auto space-y-1">
                         {packageDetails.permissions.length > 0 ? packageDetails.permissions.map(p => (
-                          <div key={p} className="text-[10px] text-zinc-500 truncate" title={p}>
+                          <div key={p} className="text-[10px] text-muted-foreground truncate" title={p}>
                             - {p.split('.').pop()}
                           </div>
                         )) : (
-                          <div className="text-zinc-600 italic">No permissions</div>
+                          <div className="text-muted-foreground italic">No permissions</div>
                         )}
                       </div>
                     </div>
@@ -378,12 +378,12 @@ export default function AppsPage() {
               </div>
             </>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-zinc-600 text-xs">
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs">
               <pre className="mb-4">
 {`>_`}
               </pre>
               <p>SELECT A PACKAGE</p>
-              <p className="text-zinc-700 mt-2">TO VIEW DETAILS</p>
+              <p className="text-muted-foreground mt-2">TO VIEW DETAILS</p>
             </div>
           )}
         </div>

@@ -235,7 +235,7 @@ export default function PerformancePage() {
           <div className="border border-border p-4">
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">CPU HISTORY</div>
             {cpuHistory.length === 0 ? (
-              <div className="text-center text-zinc-600 py-4 text-xs">
+              <div className="text-center text-muted-foreground py-4 text-xs">
                 {isMonitoring ? <TerminalSpinner label="COLLECTING" /> : 'START MONITORING TO SEE DATA'}
               </div>
             ) : (
@@ -256,7 +256,7 @@ export default function PerformancePage() {
           <div className="border border-border p-4">
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">MEMORY HISTORY</div>
             {memoryHistory.length === 0 ? (
-              <div className="text-center text-zinc-600 py-4 text-xs">
+              <div className="text-center text-muted-foreground py-4 text-xs">
                 {isMonitoring ? <TerminalSpinner label="COLLECTING" /> : 'START MONITORING TO SEE DATA'}
               </div>
             ) : (
@@ -281,7 +281,7 @@ export default function PerformancePage() {
               </div>
             </div>
             {processes.length === 0 ? (
-              <div className="text-center text-zinc-600 py-8 text-xs">
+              <div className="text-center text-muted-foreground py-8 text-xs">
                 {isMonitoring ? <TerminalSpinner label="LOADING" /> : 'START MONITORING TO SEE PROCESSES'}
               </div>
             ) : (
@@ -314,8 +314,8 @@ export default function PerformancePage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
-          <div className="text-[10px] text-zinc-600">
+        <div className="border-t border-border p-2 flex-shrink-0 bg-background">
+          <div className="text-[10px] text-muted-foreground">
             REAL-TIME PERFORMANCE MONITORING | CPU | MEMORY | BATTERY | PROCESSES
           </div>
         </div>

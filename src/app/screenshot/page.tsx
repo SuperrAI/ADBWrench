@@ -266,7 +266,7 @@ export default function ScreenshotPage() {
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Preview Area */}
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-zinc-950">
+          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background border-r border-border">
             {selectedScreenshot ? (
               <div className="flex flex-col items-center gap-4 max-h-full">
                 <img
@@ -294,15 +294,15 @@ export default function ScreenshotPage() {
                     [ DELETE ]
                   </button>
                 </div>
-                <div className="text-[10px] text-zinc-600">
+                <div className="text-[10px] text-muted-foreground">
                   {selectedScreenshot.timestamp.toLocaleString()}
                 </div>
               </div>
             ) : (
-              <div className="text-zinc-600 text-xs text-center">
+              <div className="text-muted-foreground text-xs text-center">
                 <pre className="mb-4">{`>_`}</pre>
                 <p>NO SCREENSHOT SELECTED</p>
-                <p className="text-zinc-700 mt-2">CLICK SCREENSHOT TO CAPTURE</p>
+                <p className="text-muted-foreground mt-2">CLICK SCREENSHOT TO CAPTURE</p>
               </div>
             )}
           </div>
@@ -346,8 +346,8 @@ export default function ScreenshotPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
-          <div className="text-[10px] text-zinc-600">
+        <div className="border-t border-border p-2 flex-shrink-0 bg-background">
+          <div className="text-[10px] text-muted-foreground">
             SCREENSHOT: INSTANT CAPTURE | RECORD: VIDEO UP TO 3MIN
           </div>
         </div>
