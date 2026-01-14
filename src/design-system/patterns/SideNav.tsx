@@ -164,7 +164,7 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
         )}
 
         {/* Theme Toggle */}
-        <div className="px-3 py-2 border-t border-border flex items-center justify-between">
+        <div className="px-3 border-t border-border flex items-center justify-between min-h-[36px]">
           <span className="font-mono text-[10px] text-muted-foreground">Theme</span>
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}

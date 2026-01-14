@@ -346,7 +346,7 @@ export default function ScreenshotPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background flex items-center">
+        <div className="border-t border-border px-3 flex-shrink-0 bg-background flex items-center min-h-[36px]">
           <span className="text-[10px] text-muted-foreground">
             SCREENSHOT: INSTANT CAPTURE | RECORD: VIDEO UP TO 3MIN
           </span>
