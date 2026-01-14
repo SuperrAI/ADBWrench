@@ -365,11 +365,9 @@ export default function LogcatPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background">
-          <div className="text-[10px] text-muted-foreground flex items-center justify-between">
-            <span>V=VERBOSE D=DEBUG I=INFO W=WARN E=ERROR F=FATAL</span>
-            <span>{isStreaming && 'CTRL+C OR CLICK STOP TO END'}</span>
-          </div>
+        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background flex items-center justify-between">
+          <span className="text-[10px] text-muted-foreground">V=VERBOSE D=DEBUG I=INFO W=WARN E=ERROR F=FATAL</span>
+          <span className="text-[10px] text-muted-foreground">{isStreaming && 'CTRL+C OR CLICK STOP TO END'}</span>
         </div>
       </div>
     </PageLayout>

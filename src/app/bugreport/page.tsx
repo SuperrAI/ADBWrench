@@ -377,10 +377,10 @@ export default function BugreportPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background">
-          <div className="text-[10px] text-muted-foreground">
+        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background flex items-center">
+          <span className="text-[10px] text-muted-foreground">
             GENERATE DIAGNOSTIC REPORTS | BUGREPORTZ
-          </div>
+          </span>
         </div>
       </div>
     </PageLayout>
