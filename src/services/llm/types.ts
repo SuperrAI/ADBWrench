@@ -16,6 +16,15 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   shellCommand?: string;
+  awaitingOutput?: boolean;      // Waiting for command to complete
+  commandOutput?: string;        // Captured stdout from command
+  isInterpretation?: boolean;    // Is this a follow-up interpretation response
+}
+
+export interface PendingExecution {
+  messageId: string;
+  command: string;
+  userQuery: string;
 }
 
 export type StreamCallback = (chunk: string) => void;

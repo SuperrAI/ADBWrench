@@ -15,6 +15,7 @@ import {
   AIAssistantConfig,
   StoredAPIKeys,
   ChatSession,
+  PendingExecution,
   STORAGE_KEYS,
   MAX_MESSAGES_PER_SESSION,
   generateMessageId,
@@ -42,6 +43,7 @@ interface AIAssistantContextType {
   // Chat state
   messages: ChatMessage[];
   isLoading: boolean;
+  isInterpreting: boolean;
   streamingContent: string;
   error: string | null;
 
@@ -52,6 +54,8 @@ interface AIAssistantContextType {
 
   // Command execution callback (set by shell page)
   executeCommandRef: React.MutableRefObject<((cmd: string) => void) | null>;
+  // Command output callback (set by shell page to notify when command completes)
+  onCommandOutputRef: React.MutableRefObject<((command: string, output: string, error: string | null) => void) | null>;
 }
 
 const AIAssistantContext = createContext<AIAssistantContextType | null>(null);
@@ -70,6 +74,7 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInterpreting, setIsInterpreting] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +83,17 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
 
   // Command execution callback
   const executeCommandRef = useRef<((cmd: string) => void) | null>(null);
+  // Command output callback
+  const onCommandOutputRef = useRef<((command: string, output: string, error: string | null) => void) | null>(null);
+  // Pending execution tracking
+  const pendingExecutionRef = useRef<PendingExecution | null>(null);
+  // Ref to track current messages (for use in callbacks)
+  const messagesRef = useRef<ChatMessage[]>([]);
+
+  // Keep messagesRef in sync with messages state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -317,14 +333,20 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
           content: response,
           timestamp: new Date(),
           shellCommand: shellCommand || undefined,
+          awaitingOutput: shellCommand ? true : undefined,
         };
 
         const finalMessages = [...updatedMessages, assistantMessage];
         setMessages(finalMessages);
         saveChat(finalMessages);
 
-        // Auto-execute command if found
+        // Auto-execute command if found and set up pending execution for interpretation
         if (shellCommand && executeCommandRef.current) {
+          pendingExecutionRef.current = {
+            messageId: assistantMessage.id,
+            command: shellCommand,
+            userQuery: content.trim(),
+          };
           executeCommandRef.current(shellCommand);
         }
       } catch (err) {
@@ -343,9 +365,110 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
     [config, currentApiKey, messages, deviceInfo, saveChat]
   );
 
+  // Handle command output and request interpretation
+  const handleCommandOutput = useCallback(
+    async (command: string, output: string, cmdError: string | null) => {
+      const pending = pendingExecutionRef.current;
+      if (!pending || !config || !currentApiKey) {
+        pendingExecutionRef.current = null;
+        return;
+      }
+
+      // Clear pending
+      pendingExecutionRef.current = null;
+
+      // Get current messages from ref (to avoid stale closure) and update the awaiting state
+      const currentMessages = messagesRef.current.map((m) =>
+        m.id === pending.messageId
+          ? { ...m, awaitingOutput: false, commandOutput: cmdError || output }
+          : m
+      );
+      setMessages(currentMessages);
+      saveChat(currentMessages);
+
+      // Skip interpretation if output is empty and no error
+      const trimmedOutput = output.trim();
+      if (!trimmedOutput && !cmdError) {
+        return;
+      }
+
+      // Now request interpretation from LLM
+      setIsInterpreting(true);
+      setStreamingContent('');
+
+      try {
+        const provider = getProvider(config.provider);
+        const systemPrompt = buildPromptWithDeviceContext({
+          model: deviceInfo?.model,
+          androidVersion: deviceInfo?.androidVersion,
+          manufacturer: deviceInfo?.manufacturer,
+          serial: deviceInfo?.serial,
+        });
+
+        // Build context for interpretation - full history + command output
+        const outputMessage: ChatMessage = {
+          id: 'ctx-output',
+          role: 'user',
+          content: cmdError
+            ? `Command failed with error:\n${cmdError}`
+            : `Command output:\n${output}`,
+          timestamp: new Date(),
+        };
+
+        // Send full chat history plus the command output
+        const interpretationContext: ChatMessage[] = [...currentMessages, outputMessage];
+
+        let fullResponse = '';
+
+        const response = await provider.sendMessage(
+          interpretationContext,
+          systemPrompt,
+          currentApiKey,
+          config.model,
+          (chunk) => {
+            fullResponse += chunk;
+            setStreamingContent(fullResponse);
+          }
+        );
+
+        // Add interpretation message
+        const interpretationMessage: ChatMessage = {
+          id: generateMessageId(),
+          role: 'assistant',
+          content: response,
+          timestamp: new Date(),
+          isInterpretation: true,
+        };
+
+        setMessages((prev) => {
+          const newMessages = [...prev, interpretationMessage];
+          saveChat(newMessages);
+          return newMessages;
+        });
+      } catch (err) {
+        // If interpretation fails, just show a note - user still has raw output
+        const errorMessage = err instanceof Error ? err.message : 'Failed to interpret output';
+        setError(`Interpretation failed: ${errorMessage}`);
+      } finally {
+        setIsInterpreting(false);
+        setStreamingContent('');
+      }
+    },
+    [config, currentApiKey, deviceInfo, saveChat]
+  );
+
+  // Set up the output callback
+  useEffect(() => {
+    onCommandOutputRef.current = handleCommandOutput;
+    return () => {
+      onCommandOutputRef.current = null;
+    };
+  }, [handleCommandOutput]);
+
   // Clear history
   const clearHistory = useCallback(() => {
     setMessages([]);
+    pendingExecutionRef.current = null;
     if (typeof localStorage !== 'undefined' && deviceInfo?.serial) {
       const chatKey = `${STORAGE_KEYS.AI_CHAT_PREFIX}${deviceInfo.serial}`;
       localStorage.removeItem(chatKey);
@@ -366,12 +489,14 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
         isConfigured,
         messages,
         isLoading,
+        isInterpreting,
         streamingContent,
         error,
         sendMessage,
         clearHistory,
         stopGeneration,
         executeCommandRef,
+        onCommandOutputRef,
       }}
     >
       {children}

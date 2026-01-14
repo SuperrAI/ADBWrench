@@ -26,6 +26,7 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
     isConfigured,
     messages,
     isLoading,
+    isInterpreting,
     streamingContent,
     error,
     sendMessage,
@@ -215,6 +216,23 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
                     />
                   ) : (
                     <TerminalSpinner label="THINKING" />
+                  )}
+                </div>
+              </div>
+            )}
+            {isInterpreting && (
+              <div className="mb-3">
+                <div className="text-[10px] uppercase tracking-wider mb-1 text-green-500">
+                  AI ANSWER
+                </div>
+                <div className="text-xs">
+                  {streamingContent ? (
+                    <div className="bg-green-500/5 border-l-2 border-green-500 pl-3 py-2">
+                      {streamingContent}
+                      <span className="inline-block w-2 h-3 bg-foreground animate-pulse ml-0.5" />
+                    </div>
+                  ) : (
+                    <TerminalSpinner label="INTERPRETING" />
                   )}
                 </div>
               </div>

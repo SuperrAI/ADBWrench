@@ -34,7 +34,7 @@ interface OutputEntry {
 
 export default function ShellPage() {
   const { connectionState } = useDevice();
-  const { isPanelOpen, togglePanel, executeCommandRef, isConfigured } = useAIAssistant();
+  const { isPanelOpen, togglePanel, executeCommandRef, onCommandOutputRef, isConfigured } = useAIAssistant();
   const [command, setCommand] = useState('');
   const [output, setOutput] = useState<OutputEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -47,6 +47,8 @@ export default function ShellPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const stopFnRef = useRef<(() => void) | null>(null);
+  // Track if current command is from AI (for interpretation callback)
+  const aiCommandRef = useRef<string | null>(null);
 
   // Load History
   useEffect(() => {
@@ -88,9 +90,14 @@ export default function ShellPage() {
     requestAnimationFrame(scrollToBottom);
   }, [scrollToBottom]);
 
-  const executeCommand = useCallback(async (cmd: string, streaming = false) => {
+  const executeCommand = useCallback(async (cmd: string, streaming = false, fromAI = false) => {
     if (!cmd.trim() || connectionState !== 'connected') return;
     const trimmedCmd = cmd.trim();
+
+    // Track if this is an AI-initiated command
+    if (fromAI) {
+      aiCommandRef.current = trimmedCmd;
+    }
 
     addOutput('command', trimmedCmd);
     addToHistory(trimmedCmd);
@@ -113,13 +120,26 @@ export default function ShellPage() {
         const result = await Promise.race([shell(trimmedCmd), timeoutPromise]);
         if (result) addOutput('output', result);
         setIsRunning(false);
+
+        // Notify AI assistant of command output for interpretation
+        if (aiCommandRef.current === trimmedCmd && onCommandOutputRef.current) {
+          onCommandOutputRef.current(trimmedCmd, result || '', null);
+          aiCommandRef.current = null;
+        }
       }
     } catch (err) {
-      addOutput('error', err instanceof Error ? err.message : 'Command failed');
+      const errorMsg = err instanceof Error ? err.message : 'Command failed';
+      addOutput('error', errorMsg);
       setIsRunning(false);
       setIsStreaming(false);
+
+      // Notify AI assistant of error for interpretation
+      if (aiCommandRef.current === trimmedCmd && onCommandOutputRef.current) {
+        onCommandOutputRef.current(trimmedCmd, '', errorMsg);
+        aiCommandRef.current = null;
+      }
     }
-  }, [connectionState, addOutput, addToHistory, cmdTimeout]);
+  }, [connectionState, addOutput, addToHistory, cmdTimeout, onCommandOutputRef]);
 
   const stopCommand = useCallback(() => {
     if (stopFnRef.current) {
@@ -135,7 +155,7 @@ export default function ShellPage() {
   useEffect(() => {
     executeCommandRef.current = (cmd: string) => {
       if (connectionState === 'connected') {
-        executeCommand(cmd);
+        executeCommand(cmd, false, true); // fromAI = true
       }
     };
     return () => {
