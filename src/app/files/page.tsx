@@ -379,7 +379,7 @@ export default function FilesPage() {
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
 
         {/* Footer */}
-        <div className="border-t border-border p-2 flex-shrink-0 bg-background">
+        <div className="border-t border-border px-3 py-2 flex-shrink-0 bg-background">
           <div className="text-[10px] text-muted-foreground">
             [D]=DIRECTORY [F]=FILE | CLICK TO SELECT | DOUBLE-CLICK DIR TO ENTER
           </div>
