@@ -9,12 +9,12 @@ import { TerminalSpinner } from '@/components/ui/TerminalUI';
 
 // --- Constants ---
 const LOG_LEVELS = {
-  V: { name: 'VERBOSE', color: 'text-zinc-500' },
-  D: { name: 'DEBUG', color: 'text-cyan-400' },
-  I: { name: 'INFO', color: 'text-green-400' },
-  W: { name: 'WARN', color: 'text-orange-400' },
-  E: { name: 'ERROR', color: 'text-red-400' },
-  F: { name: 'FATAL', color: 'text-red-500' },
+  V: { name: 'VERBOSE', color: 'text-muted-foreground' },
+  D: { name: 'DEBUG', color: 'text-cyan-600 dark:text-cyan-400' },
+  I: { name: 'INFO', color: 'text-green-600 dark:text-green-400' },
+  W: { name: 'WARN', color: 'text-orange-600 dark:text-orange-400' },
+  E: { name: 'ERROR', color: 'text-red-600 dark:text-red-400' },
+  F: { name: 'FATAL', color: 'text-red-700 dark:text-red-500' },
 } as const;
 
 type LogLevel = keyof typeof LOG_LEVELS;
@@ -320,16 +320,16 @@ export default function LogcatPage() {
         {/* Logs Output */}
         <div
           ref={logsRef}
-          className="flex-1 overflow-y-auto bg-black p-2 text-[11px]"
+          className="flex-1 overflow-y-auto bg-background p-2 text-[11px]"
           onClick={() => {}}
         >
           {filteredLogs.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-zinc-600">
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
               <pre className="mb-4">
 {`>_`}
               </pre>
               <p>{isStreaming ? 'WAITING FOR LOGS...' : 'NO LOGS'}</p>
-              <p className="text-zinc-700 mt-2">{isStreaming ? '' : 'PRESS START TO BEGIN'}</p>
+              <p className="text-muted-foreground mt-2">{isStreaming ? '' : 'PRESS START TO BEGIN'}</p>
             </div>
           ) : (
             <div className="space-y-px">
@@ -339,17 +339,17 @@ export default function LogcatPage() {
                   className="flex items-start gap-2 hover:bg-white/5 px-1 leading-snug"
                 >
                   {showTimestamp && (
-                    <span className="shrink-0 text-zinc-600 w-20 select-none">
+                    <span className="shrink-0 text-muted-foreground w-20 select-none">
                       {log.timestamp?.split(' ')[1]?.substring(0, 8) || '--:--:--'}
                     </span>
                   )}
                   <span className={cn("shrink-0 font-bold w-3 text-center", LOG_LEVELS[log.level].color)}>
                     {log.level}
                   </span>
-                  <span className="shrink-0 w-28 truncate text-zinc-400" title={log.tag}>
+                  <span className="shrink-0 w-28 truncate text-muted-foreground" title={log.tag}>
                     {log.tag}
                   </span>
-                  <span className="flex-1 text-zinc-300 break-all whitespace-pre-wrap">
+                  <span className="flex-1 text-foreground break-all whitespace-pre-wrap">
                     {log.message}
                   </span>
                 </div>
@@ -365,8 +365,8 @@ export default function LogcatPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
-          <div className="text-[10px] text-zinc-600 flex items-center justify-between">
+        <div className="border-t border-border p-2 flex-shrink-0 bg-background">
+          <div className="text-[10px] text-muted-foreground flex items-center justify-between">
             <span>V=VERBOSE D=DEBUG I=INFO W=WARN E=ERROR F=FATAL</span>
             <span>{isStreaming && 'CTRL+C OR CLICK STOP TO END'}</span>
           </div>

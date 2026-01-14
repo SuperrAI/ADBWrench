@@ -376,8 +376,8 @@ export default function SettingsPage() {
         )}
 
         {/* Footer */}
-        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
-          <div className="text-[10px] text-zinc-600">
+        <div className="border-t border-border p-2 flex-shrink-0 bg-background">
+          <div className="text-[10px] text-muted-foreground">
             SYSTEM | SECURE | GLOBAL SETTINGS
           </div>
         </div>

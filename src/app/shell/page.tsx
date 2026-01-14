@@ -253,7 +253,7 @@ export default function ShellPage() {
 
         {/* Terminal Output */}
         <div
-          className="flex-1 overflow-hidden bg-black"
+          className="flex-1 overflow-hidden bg-background"
           onClick={() => inputRef.current?.focus()}
         >
           <div
@@ -261,12 +261,12 @@ export default function ShellPage() {
             className="h-full overflow-y-auto p-4 text-xs space-y-1"
           >
             {output.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-zinc-600">
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                 <pre className="mb-4">
 {`>_`}
                 </pre>
                 <p>READY FOR INPUT</p>
-                <p className="text-zinc-700 mt-2">TYPE COMMAND + ENTER</p>
+                <p className="text-muted-foreground mt-2">TYPE COMMAND + ENTER</p>
               </div>
             ) : (
               output.map((entry) => (
@@ -277,7 +277,7 @@ export default function ShellPage() {
                     </div>
                   )}
                   {entry.type === 'output' && (
-                    <div className="text-zinc-300 whitespace-pre-wrap pl-2">{entry.content}</div>
+                    <div className="text-foreground whitespace-pre-wrap pl-2">{entry.content}</div>
                   )}
                   {entry.type === 'error' && (
                     <div className="text-red-500 whitespace-pre-wrap pl-2">[!] {entry.content}</div>
@@ -296,7 +296,7 @@ export default function ShellPage() {
         </div>
 
         {/* Command Input */}
-        <div className="border-t border-border p-3 flex-shrink-0 bg-zinc-950">
+        <div className="border-t border-border p-3 flex-shrink-0 bg-background">
           <div className="flex items-center gap-2">
             <span className="text-orange-500">$</span>
             <input
@@ -306,7 +306,7 @@ export default function ShellPage() {
               onChange={(e) => setCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter command..."
-              className="flex-1 bg-transparent border-none outline-none text-sm text-zinc-100 placeholder:text-zinc-600"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
               disabled={isRunning && !isStreaming}
               autoComplete="off"
             />
@@ -329,7 +329,7 @@ export default function ShellPage() {
               )}
             </div>
           </div>
-          <div className="text-[10px] text-zinc-600 mt-2">
+          <div className="text-[10px] text-muted-foreground mt-2">
             ↑↓ HISTORY | {isStreaming && 'CTRL+C STOP'}
           </div>
         </div>

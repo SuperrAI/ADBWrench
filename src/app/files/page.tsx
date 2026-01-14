@@ -274,7 +274,7 @@ export default function FilesPage() {
 
         {/* Transfer Progress */}
         {transferProgress && (
-          <div className="border-b border-orange-500 p-3 flex-shrink-0 bg-zinc-950">
+          <div className="border-b border-orange-500 p-3 flex-shrink-0 bg-background">
             <div className="text-xs text-orange-500 mb-2">
               {transferProgress.type === 'upload' ? 'UPLOADING' : 'DOWNLOADING'}: {transferProgress.name}
             </div>
@@ -289,7 +289,7 @@ export default function FilesPage() {
               <TerminalSpinner label="LOADING" />
             </div>
           ) : entries.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-zinc-600 text-xs">
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs">
               <pre className="mb-4">{`[EMPTY]`}</pre>
               <p>DIRECTORY IS EMPTY</p>
             </div>
@@ -379,8 +379,8 @@ export default function FilesPage() {
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
 
         {/* Footer */}
-        <div className="border-t border-border p-2 flex-shrink-0 bg-zinc-950">
-          <div className="text-[10px] text-zinc-600">
+        <div className="border-t border-border p-2 flex-shrink-0 bg-background">
+          <div className="text-[10px] text-muted-foreground">
             [D]=DIRECTORY [F]=FILE | CLICK TO SELECT | DOUBLE-CLICK DIR TO ENTER
           </div>
         </div>
