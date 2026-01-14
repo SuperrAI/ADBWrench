@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ChatMessage as ChatMessageType } from '@/services/llm';
-import { Play, Copy, Check, Loader2 } from 'lucide-react';
+import { Play, Copy, Check, Loader2, ArrowRight } from 'lucide-react';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -109,6 +109,13 @@ export function ChatMessage({ message, isStreaming, streamingContent, onExecute 
     return elements.length > 0 ? elements : [text];
   };
 
+  // Truncate output for preview
+  const truncateOutput = (output: string, maxLines: number = 3): string => {
+    const lines = output.split('\n').filter(l => l.trim());
+    if (lines.length <= maxLines) return lines.join('\n');
+    return lines.slice(0, maxLines).join('\n') + `\n... (${lines.length - maxLines} more lines)`;
+  };
+
   // Parse content to highlight shell commands
   const renderContent = (text: string | undefined) => {
     if (!text) return null;
@@ -121,35 +128,49 @@ export function ChatMessage({ message, isStreaming, streamingContent, onExecute 
       if (shellMatch) {
         const command = shellMatch[1].trim();
         return (
-          <div key={idx} className="my-2 border border-orange-500/50 bg-orange-500/5">
-            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-orange-500 border-b border-orange-500/50 flex items-center justify-between">
-              <span>COMMAND</span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handleCopy(command, idx)}
-                  className="p-1 hover:bg-orange-500/20 rounded transition-colors"
-                  title="Copy command"
-                >
-                  {copiedIdx === idx ? (
-                    <Check className="w-3 h-3" />
-                  ) : (
-                    <Copy className="w-3 h-3" />
-                  )}
-                </button>
-                {onExecute && (
+          <div key={idx}>
+            <div className="my-2 border border-orange-500/50 bg-orange-500/5">
+              <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-orange-500 border-b border-orange-500/50 flex items-center justify-between">
+                <span>COMMAND</span>
+                <div className="flex items-center gap-1">
                   <button
-                    onClick={() => handleExecute(command)}
+                    onClick={() => handleCopy(command, idx)}
                     className="p-1 hover:bg-orange-500/20 rounded transition-colors"
-                    title="Run command"
+                    title="Copy command"
                   >
-                    <Play className="w-3 h-3 fill-current" />
+                    {copiedIdx === idx ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
                   </button>
-                )}
+                  {onExecute && (
+                    <button
+                      onClick={() => handleExecute(command)}
+                      className="p-1 hover:bg-orange-500/20 rounded transition-colors"
+                      title="Run command"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="px-3 py-2 text-orange-500">
+                <code>{command}</code>
               </div>
             </div>
-            <div className="px-3 py-2 text-orange-500">
-              <code>{command}</code>
-            </div>
+            {/* Show output indicator if command output was captured */}
+            {message.commandOutput && (
+              <div className="mb-2 border border-muted bg-muted/30 text-[10px]">
+                <div className="px-2 py-1 uppercase tracking-wider text-muted-foreground border-b border-muted flex items-center gap-1">
+                  <ArrowRight className="w-2.5 h-2.5" />
+                  <span>OUTPUT SENT TO AI</span>
+                </div>
+                <div className="px-2 py-1.5 text-muted-foreground font-mono whitespace-pre-wrap overflow-hidden">
+                  {truncateOutput(message.commandOutput)}
+                </div>
+              </div>
+            )}
           </div>
         );
       }
@@ -164,7 +185,6 @@ export function ChatMessage({ message, isStreaming, streamingContent, onExecute 
   // Determine label based on message type
   const getLabel = () => {
     if (isUser) return 'YOU';
-    if (message.isInterpretation) return 'AI ANSWER';
     return 'AI';
   };
 
@@ -173,8 +193,7 @@ export function ChatMessage({ message, isStreaming, streamingContent, onExecute 
       <div
         className={cn(
           'text-[10px] uppercase tracking-wider mb-1 flex items-center gap-2',
-          isUser ? 'justify-end text-muted-foreground' : '',
-          message.isInterpretation ? 'text-green-500' : !isUser ? 'text-blue-500' : ''
+          isUser ? 'justify-end text-muted-foreground' : 'text-blue-500'
         )}
       >
         <span>{getLabel()}</span>
@@ -189,8 +208,7 @@ export function ChatMessage({ message, isStreaming, streamingContent, onExecute 
         className={cn(
           'text-xs leading-relaxed',
           isUser && 'text-right text-muted-foreground',
-          !isUser && !message.isInterpretation && 'text-foreground',
-          message.isInterpretation && 'text-foreground bg-green-500/5 border-l-2 border-green-500 pl-3 py-2'
+          !isUser && 'text-foreground'
         )}
       >
         {renderContent(content)}

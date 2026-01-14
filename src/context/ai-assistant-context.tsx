@@ -18,6 +18,7 @@ import {
   PendingExecution,
   STORAGE_KEYS,
   MAX_MESSAGES_PER_SESSION,
+  MAX_AUTONOMOUS_TURNS,
   generateMessageId,
   getProvider,
   getProviderConfigs,
@@ -340,12 +341,13 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
         setMessages(finalMessages);
         saveChat(finalMessages);
 
-        // Auto-execute command if found and set up pending execution for interpretation
+        // Auto-execute command if found and set up pending execution for multi-turn
         if (shellCommand && executeCommandRef.current) {
           pendingExecutionRef.current = {
             messageId: assistantMessage.id,
             command: shellCommand,
             userQuery: content.trim(),
+            turnCount: 1,
           };
           executeCommandRef.current(shellCommand);
         }
@@ -365,7 +367,7 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
     [config, currentApiKey, messages, deviceInfo, saveChat]
   );
 
-  // Handle command output and request interpretation
+  // Handle command output and continue multi-turn interaction
   const handleCommandOutput = useCallback(
     async (command: string, output: string, cmdError: string | null) => {
       const pending = pendingExecutionRef.current;
@@ -374,7 +376,7 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      // Clear pending
+      // Clear pending (will be set again if we continue)
       pendingExecutionRef.current = null;
 
       // Get current messages from ref (to avoid stale closure) and update the awaiting state
@@ -386,14 +388,14 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
       setMessages(currentMessages);
       saveChat(currentMessages);
 
-      // Skip interpretation if output is empty and no error
+      // Skip LLM call if output is empty and no error
       const trimmedOutput = output.trim();
       if (!trimmedOutput && !cmdError) {
         return;
       }
 
-      // Now request interpretation from LLM
-      setIsInterpreting(true);
+      // Call LLM with full history + command output
+      setIsLoading(true);
       setStreamingContent('');
 
       try {
@@ -405,7 +407,7 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
           serial: deviceInfo?.serial,
         });
 
-        // Build context for interpretation - full history + command output
+        // Build context - full history + command output
         const outputMessage: ChatMessage = {
           id: 'ctx-output',
           role: 'user',
@@ -415,13 +417,12 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
           timestamp: new Date(),
         };
 
-        // Send full chat history plus the command output
-        const interpretationContext: ChatMessage[] = [...currentMessages, outputMessage];
+        const contextMessages: ChatMessage[] = [...currentMessages, outputMessage];
 
         let fullResponse = '';
 
         const response = await provider.sendMessage(
-          interpretationContext,
+          contextMessages,
           systemPrompt,
           currentApiKey,
           config.model,
@@ -431,26 +432,40 @@ export function AIAssistantProvider({ children }: PropsWithChildren) {
           }
         );
 
-        // Add interpretation message
-        const interpretationMessage: ChatMessage = {
+        // Check if LLM wants to run another command
+        const nextCommand = extractShellCommand(response);
+
+        // Create the assistant message
+        const assistantMessage: ChatMessage = {
           id: generateMessageId(),
           role: 'assistant',
           content: response,
           timestamp: new Date(),
-          isInterpretation: true,
+          shellCommand: nextCommand || undefined,
+          awaitingOutput: nextCommand && pending.turnCount < MAX_AUTONOMOUS_TURNS ? true : undefined,
         };
 
-        setMessages((prev) => {
-          const newMessages = [...prev, interpretationMessage];
-          saveChat(newMessages);
-          return newMessages;
-        });
+        // Update messages state
+        const newMessages = [...currentMessages, assistantMessage];
+        setMessages(newMessages);
+        saveChat(newMessages);
+
+        // If there's a command and we're under the turn limit, execute it
+        if (nextCommand && pending.turnCount < MAX_AUTONOMOUS_TURNS && executeCommandRef.current) {
+          pendingExecutionRef.current = {
+            messageId: assistantMessage.id,
+            command: nextCommand,
+            userQuery: pending.userQuery,
+            turnCount: pending.turnCount + 1,
+          };
+          executeCommandRef.current(nextCommand);
+        }
+        // If at turn limit but command exists, it won't auto-execute (user can click play)
       } catch (err) {
-        // If interpretation fails, just show a note - user still has raw output
-        const errorMessage = err instanceof Error ? err.message : 'Failed to interpret output';
-        setError(`Interpretation failed: ${errorMessage}`);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
+        setError(errorMessage);
       } finally {
-        setIsInterpreting(false);
+        setIsLoading(false);
         setStreamingContent('');
       }
     },

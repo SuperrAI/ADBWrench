@@ -25,6 +25,7 @@ export interface PendingExecution {
   messageId: string;
   command: string;
   userQuery: string;
+  turnCount: number;
 }
 
 export type StreamCallback = (chunk: string) => void;
@@ -72,3 +73,4 @@ export const STORAGE_KEYS = {
 
 export const MAX_MESSAGES_PER_SESSION = 100;
 export const MAX_SESSIONS_STORED = 10;
+export const MAX_AUTONOMOUS_TURNS = 5;
