@@ -3,9 +3,12 @@
 import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react';
 import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
+import { useAIAssistant } from '@/context/ai-assistant-context';
 import { shell, shellStream } from '@/services/adb';
 import { cn } from '@/lib/utils';
 import { TerminalSpinner } from '@/components/ui/TerminalUI';
+import { AIAssistantPanel } from '@/components/shell';
+import { Sparkles } from 'lucide-react';
 
 // --- Preset Commands Data ---
 const PRESET_COMMANDS = [
@@ -31,6 +34,7 @@ interface OutputEntry {
 
 export default function ShellPage() {
   const { connectionState } = useDevice();
+  const { isPanelOpen, togglePanel, executeCommandRef, isConfigured } = useAIAssistant();
   const [command, setCommand] = useState('');
   const [output, setOutput] = useState<OutputEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -127,6 +131,18 @@ export default function ShellPage() {
     addOutput('output', '\n[STOPPED]');
   }, [addOutput]);
 
+  // Wire up AI assistant command execution
+  useEffect(() => {
+    executeCommandRef.current = (cmd: string) => {
+      if (connectionState === 'connected') {
+        executeCommand(cmd);
+      }
+    };
+    return () => {
+      executeCommandRef.current = null;
+    };
+  }, [executeCommandRef, connectionState, executeCommand]);
+
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -194,7 +210,12 @@ export default function ShellPage() {
 
   return (
     <PageLayout>
-      <div className="h-full flex flex-col font-mono overflow-hidden">
+      <div className="h-full flex font-mono overflow-hidden">
+        {/* Main Shell Area */}
+        <div className={cn(
+          'flex flex-col overflow-hidden transition-all duration-200',
+          isPanelOpen ? 'w-2/3' : 'w-full'
+        )}>
         {/* Header */}
         <div className="border-b border-border p-3 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -230,6 +251,21 @@ export default function ShellPage() {
                 className="px-2 py-1 border border-border hover:bg-muted disabled:opacity-50"
               >
                 [ CLEAR ]
+              </button>
+
+              <button
+                onClick={togglePanel}
+                className={cn(
+                  'px-2 py-1 border flex items-center gap-1.5',
+                  isPanelOpen
+                    ? 'border-blue-500 text-blue-500 bg-blue-500/10'
+                    : 'border-border hover:bg-muted',
+                  isConfigured && !isPanelOpen && 'text-blue-500'
+                )}
+                title="AI Assistant"
+              >
+                <Sparkles className="w-3 h-3" />
+                [ AI ]
               </button>
             </div>
           </div>
@@ -333,6 +369,14 @@ export default function ShellPage() {
             ↑↓ HISTORY | {isStreaming && 'CTRL+C STOP'}
           </div>
         </div>
+        </div>
+
+        {/* AI Assistant Panel */}
+        {isPanelOpen && (
+          <div className="w-1/3 flex-shrink-0">
+            <AIAssistantPanel />
+          </div>
+        )}
       </div>
     </PageLayout>
   );

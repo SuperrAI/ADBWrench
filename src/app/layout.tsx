@@ -5,6 +5,7 @@ import { Providers } from '@/components/providers/providers';
 import { PWAProvider } from '@/components/pwa';
 import { ThemeProvider } from '@/context/theme-context';
 import { DeviceProvider } from '@/context/device-context';
+import { AIAssistantProvider } from '@/context/ai-assistant-context';
 import { LayoutProvider } from '@/context/layout-context';
 import { KeyboardShortcutsProvider } from '@/components/ui/KeyboardShortcutsProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -51,6 +52,7 @@ export default function RootLayout({
       <body className="font-mono antialiased">
         <ThemeProvider>
           <DeviceProvider>
+          <AIAssistantProvider>
             <LayoutProvider>
               <Providers>
                 <PWAProvider>
@@ -62,6 +64,7 @@ export default function RootLayout({
                 </PWAProvider>
               </Providers>
             </LayoutProvider>
+          </AIAssistantProvider>
           </DeviceProvider>
         </ThemeProvider>
       </body>
