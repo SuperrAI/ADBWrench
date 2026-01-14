@@ -5,7 +5,7 @@ import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
 import { shellStream } from '@/services/adb';
 import { cn } from '@/lib/utils';
-import { TerminalSpinner } from '@/components/ui/TerminalUI';
+import { TerminalSpinner, TerminalSelect } from '@/components/ui/TerminalUI';
 
 // --- Constants ---
 const LOG_LEVELS = {
@@ -81,7 +81,7 @@ function parseLogLine(line: string, id: string): LogEntry | null {
 }
 
 export default function LogcatPage() {
-  const { connectionState } = useDevice();
+  const { connectionState, handleConnectionError } = useDevice();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -126,10 +126,11 @@ export default function LogcatPage() {
         () => { }
       );
       stopFnRef.current = exit;
-    } catch {
+    } catch (err) {
+      handleConnectionError(err);
       setIsStreaming(false);
     }
-  }, [connectionState, buffer]);
+  }, [connectionState, buffer, handleConnectionError]);
 
   const stopStreaming = () => {
     stopFnRef.current?.();
@@ -202,14 +203,12 @@ export default function LogcatPage() {
             </div>
 
             <div className="flex items-center gap-2 text-xs">
-              <select
+              <TerminalSelect
                 value={buffer}
-                onChange={(e) => setBuffer(e.target.value)}
+                options={BUFFERS}
+                onChange={setBuffer}
                 disabled={isStreaming}
-                className="bg-transparent border border-border px-2 py-1 outline-none disabled:opacity-50"
-              >
-                {BUFFERS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select>
+              />
 
               {isStreaming ? (
                 <button
@@ -324,12 +323,10 @@ export default function LogcatPage() {
           onClick={() => {}}
         >
           {filteredLogs.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-              <pre className="mb-4">
-{`>_`}
-              </pre>
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs">
+              <pre className="mb-4">{`>_`}</pre>
               <p>{isStreaming ? 'WAITING FOR LOGS...' : 'NO LOGS'}</p>
-              <p className="text-muted-foreground mt-2">{isStreaming ? '' : 'PRESS START TO BEGIN'}</p>
+              <p className="mt-2">{isStreaming ? 'Data will appear here' : 'PRESS START TO BEGIN'}</p>
             </div>
           ) : (
             <div className="space-y-px">

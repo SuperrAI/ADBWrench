@@ -9,8 +9,7 @@ import {
   type FullDeviceInfo
 } from '@/services/device-info';
 import {
-  TerminalProgressBar,
-  TerminalSpinner,
+  TerminalLoadingState,
   TerminalGrid,
   TerminalGridCell,
 } from '@/components/ui/TerminalUI';
@@ -23,8 +22,41 @@ const AUTO_REFRESH_INTERVALS = [
   { label: '30S', value: 30000 },
 ];
 
+// Copyable value component
+function CopyableValue({
+  value,
+  label,
+  className = ''
+}: {
+  value: string;
+  label?: string;
+  className?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      const textToCopy = label ? `${label}: ${value}` : value;
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1000);
+    } catch {}
+  };
+
+  return (
+    <span
+      onClick={handleCopy}
+      className={`cursor-pointer hover:text-orange-500 transition-colors ${copied ? 'text-orange-500' : ''} ${className}`}
+      title="Click to copy"
+    >
+      {copied ? 'Copied!' : value}
+    </span>
+  );
+}
+
+
 export default function DashboardPage() {
-  const { connectionState, deviceInfo } = useDevice();
+  const { connectionState, deviceInfo, handleConnectionError } = useDevice();
   const [fullInfo, setFullInfo] = useState<FullDeviceInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +75,14 @@ export default function DashboardPage() {
       setFullInfo(info);
       setLastRefresh(new Date());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch device info');
+      // Check if this is a connection error (device unplugged)
+      if (!handleConnectionError(err)) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch device info');
+      }
     } finally {
       setLoading(false);
     }
-  }, [connectionState, deviceInfo]);
+  }, [connectionState, deviceInfo, handleConnectionError]);
 
   useEffect(() => {
     if (connectionState === 'connected' && deviceInfo && !fullInfo) {
@@ -140,15 +175,15 @@ export default function DashboardPage() {
               <button
                 onClick={fetchInfo}
                 disabled={loading}
-                className="px-3 py-1 border border-border text-xs hover:bg-muted disabled:opacity-50"
+                className="w-[100px] py-1 border border-border text-xs hover:bg-muted disabled:opacity-50 text-center"
               >
-                [ {loading ? 'LOADING...' : 'REFRESH'} ]
+                [ {loading ? '...' : 'REFRESH'} ]
               </button>
 
               <button
                 onClick={handleCopyAll}
                 disabled={!fullInfo}
-                className="px-3 py-1 border border-foreground bg-foreground text-background text-xs hover:bg-foreground/90 disabled:opacity-50"
+                className="w-[100px] py-1 border border-foreground bg-foreground text-background text-xs hover:bg-foreground/90 disabled:opacity-50 text-center"
               >
                 [ {copied ? 'COPIED!' : 'EXPORT'} ]
               </button>
@@ -166,82 +201,83 @@ export default function DashboardPage() {
         {/* Main content */}
         <div className="flex-1 overflow-auto p-4">
           {loading && !fullInfo ? (
-            <div className="flex items-center justify-center h-full">
-              <TerminalSpinner label="LOADING DEVICE INFO" />
-            </div>
+            <TerminalLoadingState label="LOADING DEVICE INFO" sublabel="Fetching device properties..." />
           ) : fullInfo ? (
             <div className="space-y-4">
               {/* Top row - Identity & Battery & Storage */}
               <TerminalGrid cols={3}>
                 {/* Device Identity */}
-                <TerminalGridCell>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">DEVICE IDENTITY</div>
-                  <pre className="text-xs mb-3 text-center text-muted-foreground">
-{`  _____
- |     |
- |  O  |
- |_____|`}
-                  </pre>
-                  <div className="text-base font-bold text-center">{fullInfo.identity.model}</div>
-                  <div className="text-xs text-muted-foreground text-center mb-3">{fullInfo.identity.manufacturer}</div>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
+                <TerminalGridCell className="flex flex-col">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">DEVICE IDENTITY</div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold"><CopyableValue value={fullInfo.identity.model} label="Model" /></div>
+                      <div className="text-[10px] text-muted-foreground"><CopyableValue value={fullInfo.identity.manufacturer} label="Manufacturer" /></div>
+                    </div>
+                  </div>
+                  <div className="flex-1" />
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">CODENAME</span>
-                      <span>{fullInfo.identity.device}</span>
+                      <CopyableValue value={fullInfo.identity.device} label="Codename" />
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">SERIAL</span>
-                      <span>{fullInfo.identity.serial}</span>
+                      <CopyableValue value={fullInfo.identity.serial} label="Serial Number" className="font-mono text-[10px]" />
                     </div>
                   </div>
                 </TerminalGridCell>
 
                 {/* Battery */}
                 <TerminalGridCell>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">POWER & BATTERY</div>
-                  <div className="text-center mb-4">
-                    <div className="text-3xl font-bold">{fullInfo.battery.level}%</div>
-                    <div className="text-xs text-muted-foreground">{fullInfo.battery.status}</div>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">POWER & BATTERY</div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold"><CopyableValue value={`${fullInfo.battery.level}%`} label="Battery Level" /></div>
+                      <div className="text-[10px] text-muted-foreground"><CopyableValue value={fullInfo.battery.status} label="Battery Status" /></div>
+                    </div>
                   </div>
-                  <TerminalProgressBar
-                    value={fullInfo.battery.level}
-                    width={20}
-                    showPercentage={false}
-                    className="justify-center"
-                  />
-                  <div className="mt-4 space-y-1 text-xs">
-                    <div className="flex justify-between">
+                  <div className="w-full bg-muted/30 h-6 mb-4">
+                    <div
+                      className="h-full bg-green-500"
+                      style={{ width: `${fullInfo.battery.level}%` }}
+                    />
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">HEALTH</span>
-                      <span>{fullInfo.battery.health}</span>
+                      <CopyableValue value={fullInfo.battery.health} label="Battery Health" />
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">TEMP</span>
-                      <span>{(Number(fullInfo.battery.temperature) / 10).toFixed(1)}°C</span>
+                      <CopyableValue value={`${(Number(fullInfo.battery.temperature) / 10).toFixed(1)}°C`} label="Battery Temperature" />
                     </div>
                   </div>
                 </TerminalGridCell>
 
                 {/* Storage */}
                 <TerminalGridCell>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">STORAGE</div>
-                  <div className="text-center mb-4">
-                    <div className="text-3xl font-bold">{fullInfo.storage.usagePercent}%</div>
-                    <div className="text-xs text-muted-foreground">USED</div>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">STORAGE</div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold"><CopyableValue value={`${fullInfo.storage.usagePercent}%`} label="Storage Used" /></div>
+                      <div className="text-[10px] text-muted-foreground">USED</div>
+                    </div>
                   </div>
-                  <TerminalProgressBar
-                    value={fullInfo.storage.usagePercent}
-                    width={20}
-                    showPercentage={false}
-                    className="justify-center"
-                  />
-                  <div className="mt-4 space-y-1 text-xs">
-                    <div className="flex justify-between">
+                  <div className="w-full bg-muted/30 h-6 mb-4">
+                    <div
+                      className="h-full bg-orange-500"
+                      style={{ width: `${fullInfo.storage.usagePercent}%` }}
+                    />
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">TOTAL</span>
-                      <span>{fullInfo.storage.totalStorage}</span>
+                      <CopyableValue value={fullInfo.storage.totalStorage} label="Total Storage" />
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">FREE</span>
-                      <span>{fullInfo.storage.availableStorage}</span>
+                      <CopyableValue value={fullInfo.storage.availableStorage} label="Free Storage" />
                     </div>
                   </div>
                 </TerminalGridCell>
@@ -255,23 +291,23 @@ export default function DashboardPage() {
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">PLATFORM</span>
-                      <span>{fullInfo.hardware.hardwarePlatform}</span>
+                      <CopyableValue value={fullInfo.hardware.hardwarePlatform} label="Platform" />
                     </div>
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">CPU ABI</span>
-                      <span>{fullInfo.hardware.cpuArchitecture}</span>
+                      <CopyableValue value={fullInfo.hardware.cpuArchitecture} label="CPU ABI" />
                     </div>
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">RAM</span>
-                      <span>{fullInfo.hardware.totalRam}</span>
+                      <CopyableValue value={fullInfo.hardware.totalRam} label="RAM" />
                     </div>
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">RESOLUTION</span>
-                      <span>{fullInfo.hardware.displayResolution}</span>
+                      <CopyableValue value={fullInfo.hardware.displayResolution} label="Display Resolution" />
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">DENSITY</span>
-                      <span>{fullInfo.hardware.displayDensity}</span>
+                      <CopyableValue value={fullInfo.hardware.displayDensity} label="Display Density" />
                     </div>
                   </div>
                 </TerminalGridCell>
@@ -282,25 +318,27 @@ export default function DashboardPage() {
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">ANDROID</span>
-                      <span>{fullInfo.build.androidVersion}</span>
+                      <CopyableValue value={fullInfo.build.androidVersion} label="Android Version" />
                     </div>
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">SDK LEVEL</span>
-                      <span>{fullInfo.build.sdkLevel}</span>
+                      <CopyableValue value={fullInfo.build.sdkLevel} label="SDK Level" />
                     </div>
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">SECURITY</span>
-                      <span>{fullInfo.build.securityPatch}</span>
+                      <CopyableValue value={fullInfo.build.securityPatch} label="Security Patch" />
                     </div>
                     <div className="flex justify-between border-b border-border/50 pb-2">
                       <span className="text-muted-foreground">BUILD ID</span>
-                      <span>{fullInfo.build.buildDate}</span>
+                      <CopyableValue value={fullInfo.build.buildDate} label="Build ID" />
                     </div>
-                    <div>
-                      <span className="text-muted-foreground block mb-1">FINGERPRINT</span>
-                      <code className="text-[10px] break-all block bg-muted/30 p-2 border border-border">
-                        {fullInfo.build.buildFingerprint}
-                      </code>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-muted-foreground shrink-0">FINGERPRINT</span>
+                      <CopyableValue
+                        value={fullInfo.build.buildFingerprint}
+                        label="Build Fingerprint"
+                        className="truncate"
+                      />
                     </div>
                   </div>
                 </TerminalGridCell>

@@ -23,7 +23,7 @@ interface Screenshot {
 }
 
 export default function ScreenshotPage() {
-  const { connectionState } = useDevice();
+  const { connectionState, handleConnectionError } = useDevice();
   const [screenshots, setScreenshots] = useState<Screenshot[]>([]);
   const [selectedScreenshot, setSelectedScreenshot] = useState<Screenshot | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -45,7 +45,14 @@ export default function ScreenshotPage() {
 
     try {
       const pngData = await captureScreenshot();
-      const base64 = btoa(String.fromCharCode(...pngData));
+      // Convert Uint8Array to base64 in chunks to avoid stack overflow
+      const chunkSize = 8192;
+      let binary = '';
+      for (let i = 0; i < pngData.length; i += chunkSize) {
+        const chunk = pngData.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+      }
+      const base64 = btoa(binary);
       const dataUrl = `data:image/png;base64,${base64}`;
 
       const newScreenshot: Screenshot = {
@@ -57,11 +64,13 @@ export default function ScreenshotPage() {
       setScreenshots((prev) => [newScreenshot, ...prev].slice(0, MAX_HISTORY));
       setSelectedScreenshot(newScreenshot);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to capture screenshot');
+      if (!handleConnectionError(err)) {
+        setError(err instanceof Error ? err.message : 'Failed to capture screenshot');
+      }
     } finally {
       setIsCapturing(false);
     }
-  }, [connectionState]);
+  }, [connectionState, handleConnectionError]);
 
   const handleStartRecording = useCallback(async () => {
     if (connectionState !== 'connected') return;
@@ -88,11 +97,13 @@ export default function ScreenshotPage() {
       );
       stopRecordingRef.current = exit;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start recording');
+      if (!handleConnectionError(err)) {
+        setError(err instanceof Error ? err.message : 'Failed to start recording');
+      }
       setIsRecording(false);
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     }
-  }, [connectionState, recordingDuration]);
+  }, [connectionState, recordingDuration, handleConnectionError]);
 
   const handleStopRecording = useCallback(async () => {
     if (recordingTimerRef.current) {
@@ -266,7 +277,10 @@ export default function ScreenshotPage() {
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Preview Area */}
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-background border-r border-border">
+          <div className={cn(
+            "flex-1 flex flex-col items-center justify-center p-6 bg-background",
+            screenshots.length > 0 && "border-r border-border"
+          )}>
             {selectedScreenshot ? (
               <div className="flex flex-col items-center gap-4 max-h-full">
                 <img
@@ -321,7 +335,7 @@ export default function ScreenshotPage() {
                     key={screenshot.id}
                     onClick={() => setSelectedScreenshot(screenshot)}
                     className={cn(
-                      "w-full aspect-video border overflow-hidden relative group",
+                      "w-full border overflow-hidden relative group",
                       selectedScreenshot?.id === screenshot.id
                         ? "border-orange-500"
                         : "border-border hover:border-muted-foreground"
@@ -330,7 +344,7 @@ export default function ScreenshotPage() {
                     <img
                       src={screenshot.data}
                       alt="Screenshot thumbnail"
-                      className="w-full h-full object-cover"
+                      className="w-full h-auto"
                     />
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(screenshot.id); }}

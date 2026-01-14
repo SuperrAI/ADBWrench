@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
 import { shell } from '@/services/adb';
@@ -11,13 +11,9 @@ const KEY_EVENTS = [
   { label: 'BACK', keycode: 4 },
   { label: 'MENU', keycode: 82 },
   { label: 'RECENT', keycode: 187 },
-  { label: 'POWER', keycode: 26 },
-  { label: 'VOL+', keycode: 24 },
-  { label: 'VOL-', keycode: 25 },
-  { label: 'MUTE', keycode: 164 },
   { label: 'PLAY', keycode: 85 },
-  { label: 'NEXT', keycode: 87 },
   { label: 'PREV', keycode: 88 },
+  { label: 'NEXT', keycode: 87 },
   { label: 'CAM', keycode: 27 },
 ];
 
@@ -28,6 +24,8 @@ export default function ControlsPage() {
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [brightness, setBrightness] = useState(128);
+  const [volume, setVolume] = useState(7); // 0-15 range
+  const brightnessTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const showResult = (type: 'ok' | 'error', msg: string) => {
     setResult({ type, msg });
@@ -54,16 +52,38 @@ export default function ControlsPage() {
 
   const toggleScreen = () => runCommand('input keyevent 26', 'TOGGLE SCREEN');
   const unlockScreen = () => runCommand('input swipe 540 1800 540 800', 'UNLOCK');
-  const volumeUp = () => runCommand('input keyevent 24', 'VOL UP');
-  const volumeDown = () => runCommand('input keyevent 25', 'VOL DOWN');
-  const volumeMute = () => runCommand('input keyevent 164', 'MUTE');
+  const volumeUp = () => {
+    setVolume(v => Math.min(15, v + 1));
+    runCommand('input keyevent 24', 'VOL UP');
+  };
+  const volumeDown = () => {
+    setVolume(v => Math.max(0, v - 1));
+    runCommand('input keyevent 25', 'VOL DOWN');
+  };
+  const volumeMute = () => {
+    setVolume(0);
+    runCommand('input keyevent 164', 'MUTE');
+  };
 
-  const setBrightnessLevel = async (level: number) => {
+  const handleBrightnessChange = (level: number) => {
+    // Update local state immediately for smooth UI
     setBrightness(level);
-    await runCommand(`settings put system screen_brightness ${level}`, 'BRIGHTNESS');
+
+    // Debounce the actual command to the device
+    if (brightnessTimeoutRef.current) {
+      clearTimeout(brightnessTimeoutRef.current);
+    }
+    brightnessTimeoutRef.current = setTimeout(async () => {
+      try {
+        await shell(`settings put system screen_brightness ${level}`);
+      } catch {
+        // Silently fail for brightness
+      }
+    }, 100);
   };
 
   const toggleWifi = () => runCommand('svc wifi disable && svc wifi enable', 'WIFI');
+  const toggleBluetooth = () => runCommand('svc bluetooth disable && svc bluetooth enable', 'BLUETOOTH');
   const toggleAirplane = () => runCommand('settings put global airplane_mode_on 1 && am broadcast -a android.intent.action.AIRPLANE_MODE', 'AIRPLANE');
   const toggleStayAwake = () => runCommand('svc power stayon true', 'STAY AWAKE ON');
   const disableStayAwake = () => runCommand('svc power stayon false', 'STAY AWAKE OFF');
@@ -125,33 +145,39 @@ export default function ControlsPage() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
             {/* Power Section */}
             <div className="border border-border p-4">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">POWER</div>
               <div className="space-y-2 text-xs">
-                <button
-                  onClick={() => setConfirmAction('reboot')}
-                  disabled={loading !== null}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
-                >
-                  [ REBOOT ]
-                </button>
-                <button
-                  onClick={() => setConfirmAction('recovery')}
-                  disabled={loading !== null}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
-                >
-                  [ RECOVERY MODE ]
-                </button>
-                <button
-                  onClick={() => setConfirmAction('bootloader')}
-                  disabled={loading !== null}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
-                >
-                  [ BOOTLOADER ]
-                </button>
+                <div className="flex items-center justify-between">
+                  <span>Reboot</span>
+                  <button
+                    onClick={() => setConfirmAction('reboot')}
+                    className="px-3 py-1 border border-border hover:bg-muted"
+                  >
+                    [ REBOOT ]
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Recovery Mode</span>
+                  <button
+                    onClick={() => setConfirmAction('recovery')}
+                    className="px-3 py-1 border border-border hover:bg-muted"
+                  >
+                    [ RECOVERY ]
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Bootloader</span>
+                  <button
+                    onClick={() => setConfirmAction('bootloader')}
+                    className="px-3 py-1 border border-border hover:bg-muted"
+                  >
+                    [ FASTBOOT ]
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -159,137 +185,219 @@ export default function ControlsPage() {
             <div className="border border-border p-4">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">SCREEN</div>
               <div className="space-y-2 text-xs">
-                <button
-                  onClick={toggleScreen}
-                  disabled={loading !== null}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
-                >
-                  [ TOGGLE ON/OFF ]
-                </button>
-                <button
-                  onClick={unlockScreen}
-                  disabled={loading !== null}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
-                >
-                  [ SWIPE UNLOCK ]
-                </button>
+                <div className="flex items-center justify-between">
+                  <span>Power</span>
+                  <button
+                    onClick={toggleScreen}
+                    className={cn(
+                      "px-3 py-1 border border-border hover:bg-muted",
+                      loading === 'TOGGLE SCREEN' && "text-orange-500 border-orange-500"
+                    )}
+                  >
+                    [ TOGGLE ]
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Unlock</span>
+                  <button
+                    onClick={unlockScreen}
+                    className={cn(
+                      "px-3 py-1 border border-border hover:bg-muted",
+                      loading === 'UNLOCK' && "text-orange-500 border-orange-500"
+                    )}
+                  >
+                    [ SWIPE ]
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Stay Awake</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={toggleStayAwake}
+                      className={cn(
+                        "px-3 py-1 border border-border hover:bg-muted",
+                        loading === 'STAY AWAKE ON' && "text-orange-500 border-orange-500"
+                      )}
+                    >
+                      [ ON ]
+                    </button>
+                    <button
+                      onClick={disableStayAwake}
+                      className={cn(
+                        "px-3 py-1 border border-border hover:bg-muted",
+                        loading === 'STAY AWAKE OFF' && "text-orange-500 border-orange-500"
+                      )}
+                    >
+                      [ OFF ]
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Volume Section */}
-            <div className="border border-border p-4">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">VOLUME</div>
-              <div className="flex gap-2 text-xs">
-                <button
-                  onClick={volumeDown}
-                  disabled={loading !== null}
-                  className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
-                >
-                  [ - ]
-                </button>
-                <button
-                  onClick={volumeMute}
-                  disabled={loading !== null}
-                  className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
-                >
-                  [ X ]
-                </button>
-                <button
-                  onClick={volumeUp}
-                  disabled={loading !== null}
-                  className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
-                >
-                  [ + ]
-                </button>
-              </div>
-            </div>
-
-            {/* Brightness Section */}
-            <div className="border border-border p-4">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-                BRIGHTNESS: {Math.round((brightness / 255) * 100)}%
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="255"
-                value={brightness}
-                onChange={(e) => setBrightnessLevel(Number(e.target.value))}
-                disabled={loading !== null}
-                className="w-full h-2 bg-muted accent-orange-500 cursor-pointer disabled:opacity-50"
-              />
             </div>
 
             {/* Connectivity Section */}
             <div className="border border-border p-4">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">CONNECTIVITY</div>
               <div className="space-y-2 text-xs">
-                <button
-                  onClick={toggleWifi}
-                  disabled={loading !== null}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
-                >
-                  [ TOGGLE WIFI ]
-                </button>
-                <button
-                  onClick={toggleAirplane}
-                  disabled={loading !== null}
-                  className="w-full px-3 py-2 border border-border hover:bg-muted text-left disabled:opacity-50"
-                >
-                  [ AIRPLANE MODE ]
-                </button>
-                <div className="flex gap-2">
+                <div className="flex items-center justify-between">
+                  <span>Wi-Fi</span>
                   <button
-                    onClick={toggleStayAwake}
-                    disabled={loading !== null}
-                    className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
+                    onClick={toggleWifi}
+                    className={cn(
+                      "px-3 py-1 border border-border hover:bg-muted",
+                      loading === 'WIFI' && "text-orange-500 border-orange-500"
+                    )}
                   >
-                    AWAKE
+                    [ TOGGLE ]
                   </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Bluetooth</span>
                   <button
-                    onClick={disableStayAwake}
-                    disabled={loading !== null}
-                    className="flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50"
+                    onClick={toggleBluetooth}
+                    className={cn(
+                      "px-3 py-1 border border-border hover:bg-muted",
+                      loading === 'BLUETOOTH' && "text-orange-500 border-orange-500"
+                    )}
                   >
-                    SLEEP
+                    [ TOGGLE ]
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Airplane Mode</span>
+                  <button
+                    onClick={toggleAirplane}
+                    className={cn(
+                      "px-3 py-1 border border-border hover:bg-muted",
+                      loading === 'AIRPLANE' && "text-orange-500 border-orange-500"
+                    )}
+                  >
+                    [ TOGGLE ]
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Text Input Section */}
+            {/* Audio & Display Section */}
             <div className="border border-border p-4">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">AUDIO & DISPLAY</div>
+              <div className="space-y-4 text-xs">
+                {/* Volume */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span>Volume</span>
+                    <span className="text-orange-500 font-mono">{Math.round((volume / 15) * 100)}%</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={volumeDown}
+                      disabled={volume <= 0}
+                      className={cn(
+                        "flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50",
+                        loading === 'VOL DOWN' && "text-orange-500 border-orange-500"
+                      )}
+                    >
+                      [ - ]
+                    </button>
+                    <button
+                      onClick={volumeMute}
+                      className={cn(
+                        "flex-1 px-3 py-2 border border-border hover:bg-muted",
+                        loading === 'MUTE' && "text-orange-500 border-orange-500"
+                      )}
+                    >
+                      [ MUTE ]
+                    </button>
+                    <button
+                      onClick={volumeUp}
+                      disabled={volume >= 15}
+                      className={cn(
+                        "flex-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-50",
+                        loading === 'VOL UP' && "text-orange-500 border-orange-500"
+                      )}
+                    >
+                      [ + ]
+                    </button>
+                  </div>
+                </div>
+                {/* Brightness */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span>Brightness</span>
+                    <span className="text-orange-500 font-mono">{Math.max(1, Math.round((brightness / 255) * 100))}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleBrightnessChange(Math.max(3, brightness - 26))}
+                      disabled={brightness <= 3}
+                      className="flex-1 h-8 border border-border hover:bg-muted disabled:opacity-50"
+                    >
+                      -
+                    </button>
+                    {[...Array(10)].map((_, i) => {
+                      const blockThreshold = ((i + 1) / 10) * 255;
+                      const isFilled = brightness >= blockThreshold;
+                      return (
+                        <div
+                          key={i}
+                          className={cn(
+                            "flex-1 h-8 border transition-colors cursor-pointer",
+                            isFilled
+                              ? "bg-orange-500 border-orange-500"
+                              : "bg-muted/30 border-border hover:border-orange-500/50"
+                          )}
+                          onClick={() => handleBrightnessChange(Math.max(3, Math.round(((i + 1) / 10) * 255)))}
+                        />
+                      );
+                    })}
+                    <button
+                      onClick={() => handleBrightnessChange(Math.min(255, brightness + 26))}
+                      disabled={brightness >= 255}
+                      className="flex-1 h-8 border border-border hover:bg-muted disabled:opacity-50"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Text Input Section */}
+            <div className="border border-border p-4 flex flex-col">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">TEXT INPUT</div>
-              <div className="space-y-2 text-xs">
-                <input
-                  type="text"
+              <div className="flex-1 flex flex-col text-xs">
+                <textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && sendText()}
-                  placeholder="Type text..."
-                  disabled={loading !== null}
-                  className="w-full bg-transparent border border-border px-2 py-1 outline-none focus:border-orange-500 disabled:opacity-50"
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendText())}
+                  placeholder="Type text to send to device..."
+                  className="terminal-input flex-1 min-h-[80px] w-full bg-transparent border border-border px-2 py-2 outline-none focus:border-orange-500 resize-none"
                 />
                 <button
                   onClick={sendText}
-                  disabled={loading !== null || !inputText.trim()}
-                  className="w-full px-3 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/10 disabled:opacity-50"
+                  disabled={!inputText.trim()}
+                  className={cn(
+                    "mt-2 w-full px-3 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500/10 disabled:opacity-50",
+                    loading === 'SEND TEXT' && "bg-orange-500/20"
+                  )}
                 >
                   [ SEND ]
                 </button>
               </div>
             </div>
 
-            {/* Hardware Keys Section - Full Width */}
-            <div className="border border-border p-4 md:col-span-2 lg:col-span-3">
+            {/* Hardware Keys Section */}
+            <div className="border border-border p-4">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">HARDWARE KEYS</div>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 {KEY_EVENTS.map((key) => (
                   <button
                     key={key.keycode}
                     onClick={() => sendKeyEvent(key.keycode, key.label)}
-                    disabled={loading !== null}
-                    className="px-3 py-2 border border-border hover:bg-muted hover:border-orange-500 disabled:opacity-50 text-center"
+                    className={cn(
+                      "px-3 py-2 border border-border hover:bg-muted hover:border-orange-500 text-center",
+                      loading === key.label && "text-orange-500 border-orange-500"
+                    )}
                   >
                     {key.label}
                   </button>

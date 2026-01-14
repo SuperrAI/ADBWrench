@@ -300,14 +300,26 @@ export async function tryAutoReconnect(
     return null;
   }
 
-  const devices = await getDevices();
-  const device = devices.find((d) => d.serial === lastSerial);
-
-  if (!device) {
-    return null;
-  }
-
   try {
+    const devices = await getDevices();
+
+    // Find device by serial, handling disconnected devices that throw on property access
+    let device: AdbDaemonWebUsbDevice | undefined;
+    for (const d of devices) {
+      try {
+        if (d.serial === lastSerial) {
+          device = d;
+          break;
+        }
+      } catch {
+        // Device disconnected, skip it
+      }
+    }
+
+    if (!device) {
+      return null;
+    }
+
     return await connectToDevice(device, onAuthPending);
   } catch {
     // Device no longer authorized or not connected

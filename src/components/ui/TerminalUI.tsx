@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { ChevronDown } from 'lucide-react';
 
 /**
  * Terminal-style Progress Bar using ASCII characters
@@ -68,6 +69,38 @@ export function TerminalSpinner({ label = "LOADING", className }: SpinnerProps) 
     <span className={cn("font-mono text-xs", className)}>
       {label} {frames[frame]}
     </span>
+  );
+}
+
+/**
+ * Full-page loading state with centered spinner
+ */
+interface LoadingStateProps {
+  label?: string;
+  sublabel?: string;
+}
+
+export function TerminalLoadingState({ label = "LOADING", sublabel }: LoadingStateProps) {
+  const [frame, setFrame] = React.useState(0);
+  const frames = ['|', '/', '-', '\\'];
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(f => (f + 1) % frames.length);
+    }, 150);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="h-full flex items-center justify-center p-8 font-mono">
+      <div className="text-center">
+        <div className="text-2xl mb-4 text-orange-500">{frames[frame]}</div>
+        <div className="text-sm mb-2">{label}</div>
+        {sublabel && (
+          <div className="text-xs text-muted-foreground">{sublabel}</div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -263,6 +296,111 @@ export function TerminalGridCell({ children, className }: { children: React.Reac
 /**
  * ASCII art icons as text
  */
+/**
+ * Terminal-style Select/Dropdown
+ */
+interface TerminalSelectOption {
+  value: string;
+  label: string;
+}
+
+interface TerminalSelectProps {
+  value: string;
+  options: TerminalSelectOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+export function TerminalSelect({
+  value,
+  options,
+  onChange,
+  disabled = false,
+  className
+}: TerminalSelectProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  // Close on escape key
+  React.useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen]);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={containerRef} className={cn("relative font-mono text-xs", className)}>
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={cn(
+          "flex items-center gap-1 px-2 py-1 border border-border transition-colors",
+          disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted cursor-pointer",
+          isOpen && "border-orange-500"
+        )}
+      >
+        <span>{selectedOption?.label || value}</span>
+        <ChevronDown
+          className={cn(
+            "w-3 h-3 text-muted-foreground transition-transform",
+            isOpen && "rotate-180"
+          )}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-px z-50 min-w-full bg-background border border-border shadow-lg">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleSelect(option.value)}
+              className={cn(
+                "w-full px-2 py-1.5 text-left transition-colors",
+                option.value === value
+                  ? "bg-orange-500/10 text-orange-500"
+                  : "hover:bg-muted hover:text-orange-500"
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const ASCIIIcons = {
   folder: '[D]',
   file: '[F]',

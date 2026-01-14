@@ -147,6 +147,11 @@ button[data-variant="elevated"]:hover:not(:disabled) {
   outline-offset: 2px !important;
 }
 
+/* Terminal inputs should have no focus outline */
+.terminal-input:focus-visible {
+  outline: none !important;
+}
+
 /* Remove rounded corners globally for terminal aesthetic */
 .rounded-full {
   border-radius: 0 !important;

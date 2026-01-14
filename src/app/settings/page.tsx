@@ -6,7 +6,7 @@ import { useDevice } from '@/context/device-context';
 import { shell } from '@/services/adb';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { TerminalSpinner } from '@/components/ui/TerminalUI';
+import { TerminalSpinner, TerminalLoadingState } from '@/components/ui/TerminalUI';
 
 type Namespace = 'system' | 'secure' | 'global';
 
@@ -270,11 +270,11 @@ export default function SettingsPage() {
 
           {/* Settings List */}
           <div className="border border-border">
-            <div className="p-3 border-b border-border bg-muted">
-              <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase">
-                <span className="flex-1">KEY</span>
-                <span className="w-32 text-right">VALUE</span>
-                <span className="w-16 text-right">ACTIONS</span>
+            <div className="p-3 border-b border-border">
+              <div className="flex items-center text-[10px] text-muted-foreground uppercase">
+                <span className="w-[40%]">KEY</span>
+                <span className="w-[40%]">VALUE</span>
+                <span className="w-[20%] text-right">ACTIONS</span>
               </div>
             </div>
 
@@ -287,40 +287,36 @@ export default function SettingsPage() {
                 NO SETTINGS FOUND
               </div>
             ) : (
-              <div className="divide-y divide-border text-xs max-h-96 overflow-y-auto">
+              <div className="divide-y divide-border text-xs">
                 {filtered.map((setting) => (
                   <div
                     key={setting.key}
-                    className="flex items-center gap-3 p-2 hover:bg-muted group"
+                    className="flex items-center p-2"
                   >
-                    <span className="flex-1 truncate text-muted-foreground" title={setting.key}>
+                    <span className="w-[40%] truncate text-muted-foreground pr-4" title={setting.key}>
                       {setting.key}
                     </span>
-                    <span className="w-32 truncate text-right" title={setting.value}>
+                    <span className="w-[40%] truncate pr-4" title={setting.value}>
                       {setting.value || <span className="text-muted-foreground">null</span>}
                     </span>
-                    <div className="w-16 flex justify-end gap-1 opacity-0 group-hover:opacity-100">
+                    <div className="w-[20%] flex justify-end gap-2">
                       <button
                         onClick={() => { setEditingSetting(setting); setEditValue(setting.value); }}
-                        className="px-1 py-0.5 border border-border hover:border-orange-500 hover:text-orange-500"
+                        className="px-2 py-0.5 border border-border hover:border-orange-500 hover:text-orange-500"
                       >
-                        [E]
+                        [EDIT]
                       </button>
                       <button
                         onClick={() => handleDelete(setting)}
-                        className="px-1 py-0.5 border border-border hover:border-red-500 hover:text-red-500"
+                        className="px-2 py-0.5 border border-border hover:border-red-500 hover:text-red-500"
                       >
-                        [X]
+                        [DEL]
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="text-center text-[10px] text-muted-foreground">
-            {filtered.length} SETTINGS IN {activeNamespace.toUpperCase()}
           </div>
 
         </div>
@@ -376,9 +372,12 @@ export default function SettingsPage() {
         )}
 
         {/* Footer */}
-        <div className="border-t border-border px-3 flex-shrink-0 bg-background flex items-center min-h-[36px]">
+        <div className="border-t border-border px-3 flex-shrink-0 bg-background flex items-center justify-between min-h-[36px]">
           <span className="text-[10px] text-muted-foreground">
             SYSTEM | SECURE | GLOBAL SETTINGS
+          </span>
+          <span className="text-[10px] text-muted-foreground">
+            {filtered.length} SETTINGS IN {activeNamespace.toUpperCase()}
           </span>
         </div>
       </div>

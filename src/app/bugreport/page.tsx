@@ -6,7 +6,7 @@ import { useDevice } from '@/context/device-context';
 import { shellStream, pullFile } from '@/services/adb';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { TerminalSpinner, TerminalProgressBar } from '@/components/ui/TerminalUI';
+import { TerminalSpinner } from '@/components/ui/TerminalUI';
 
 interface BugreportEntry {
   id: string;
@@ -300,7 +300,12 @@ export default function BugreportPage() {
                 </div>
               </div>
 
-              <TerminalProgressBar value={currentReport.progress} width={40} showPercentage={false} />
+              <div className="w-full bg-muted/30 h-4">
+                <div
+                  className="h-full bg-orange-500 transition-all"
+                  style={{ width: `${currentReport.progress}%` }}
+                />
+              </div>
 
               <div className="text-xs text-muted-foreground mt-3 text-center">
                 <TerminalSpinner label="WORKING" /> | PLEASE WAIT...

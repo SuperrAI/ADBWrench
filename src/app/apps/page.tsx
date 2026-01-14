@@ -17,7 +17,7 @@ import {
   type PackageDetails,
 } from '@/services/packages';
 import { cn } from '@/lib/utils';
-import { TerminalSpinner } from '@/components/ui/TerminalUI';
+import { TerminalSpinner, TerminalLoadingState } from '@/components/ui/TerminalUI';
 
 export default function AppsPage() {
   const { connectionState } = useDevice();
@@ -201,9 +201,7 @@ export default function AppsPage() {
           {/* Package List */}
           <div className="flex-1 overflow-y-auto">
             {loading && packages.length === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                <TerminalSpinner label="LOADING PACKAGES" />
-              </div>
+              <TerminalLoadingState label="LOADING PACKAGES" sublabel="Fetching installed applications..." />
             ) : viewMode === 'list' ? (
               <div className="divide-y divide-border">
                 {filtered.map(pkg => (

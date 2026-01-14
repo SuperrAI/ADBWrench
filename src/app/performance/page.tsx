@@ -5,14 +5,91 @@ import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
 import { shell } from '@/services/adb';
 import { cn } from '@/lib/utils';
-import { TerminalSpinner, TerminalProgressBar } from '@/components/ui/TerminalUI';
+import { TerminalSpinner, TerminalGrid, TerminalGridCell } from '@/components/ui/TerminalUI';
 
 interface CpuData { timestamp: number; usage: number; }
 interface MemoryData { timestamp: number; total: number; used: number; available: number; }
 interface ProcessInfo { pid: string; user: string; cpu: number; mem: number; name: string; }
 interface BatteryInfo { level: number; temperature: number; voltage: number; status: string; }
 
-const MAX_DATA_POINTS = 30;
+const MAX_DATA_POINTS = 60;
+
+// ASCII sparkline characters for terminal-style charts
+const SPARKLINE_CHARS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+
+function getSparklineChar(value: number, max: number = 100): string {
+  const normalized = Math.min(Math.max(value / max, 0), 1);
+  const index = Math.floor(normalized * (SPARKLINE_CHARS.length - 1));
+  return SPARKLINE_CHARS[index];
+}
+
+function SparklineChart({
+  data,
+  getValue,
+  color = 'text-orange-500',
+  label,
+  currentValue,
+  unit = '%',
+  isMonitoring = false
+}: {
+  data: { timestamp: number }[];
+  getValue: (d: { timestamp: number }) => number;
+  color?: string;
+  label: string;
+  currentValue: number;
+  unit?: string;
+  isMonitoring?: boolean;
+}) {
+  const sparkline = data.map(d => getSparklineChar(getValue(d))).join('');
+  const minVal = data.length ? Math.min(...data.map(getValue)) : 0;
+  const maxVal = data.length ? Math.max(...data.map(getValue)) : 0;
+  const avgVal = data.length ? Math.round(data.reduce((acc, d) => acc + getValue(d), 0) / data.length) : 0;
+
+  return (
+    <div className="border border-border p-4">
+      <div className="flex justify-between items-start mb-3">
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
+        <div className="text-right">
+          <div className={cn("text-xl font-bold", color)}>{currentValue}{unit}</div>
+          <div className="text-[10px] text-muted-foreground">CURRENT</div>
+        </div>
+      </div>
+
+      {data.length === 0 ? (
+        <div className="text-center text-muted-foreground py-6 text-xs">
+          {isMonitoring ? <TerminalSpinner label="COLLECTING" /> : 'START MONITORING TO SEE DATA'}
+        </div>
+      ) : (
+        <>
+          {/* Sparkline */}
+          <div className={cn("font-mono text-lg tracking-tighter overflow-hidden whitespace-nowrap", color)}>
+            {sparkline || '▁'.repeat(30)}
+          </div>
+
+          {/* Stats row */}
+          <div className="flex justify-between text-xs mt-3 pt-3 border-t border-border/50">
+            <div>
+              <span className="text-muted-foreground">MIN </span>
+              <span>{minVal}{unit}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">AVG </span>
+              <span>{avgVal}{unit}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">MAX </span>
+              <span>{maxVal}{unit}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">SAMPLES </span>
+              <span>{data.length}</span>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function PerformancePage() {
   const { connectionState } = useDevice();
@@ -184,94 +261,135 @@ export default function PerformancePage() {
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-          {/* KPI Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* KPI Grid - Dashboard style */}
+          <TerminalGrid cols={4}>
             {/* CPU */}
-            <div className="border border-border p-4">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">CPU LOAD</div>
-              <div className="text-2xl font-bold">{currentCpu}%</div>
-              <TerminalProgressBar value={currentCpu} width={15} showPercentage={false} className="mt-2" />
-            </div>
+            <TerminalGridCell>
+              <div className="flex justify-between items-start mb-3">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">CPU LOAD</div>
+                <div className="text-right">
+                  <div className={cn(
+                    "text-xl font-bold",
+                    currentCpu >= 80 ? "text-red-500" : currentCpu >= 50 ? "text-orange-500" : ""
+                  )}>{currentCpu}%</div>
+                  <div className="text-[10px] text-muted-foreground">USAGE</div>
+                </div>
+              </div>
+              <div className="w-full bg-muted/30 h-4 mb-3">
+                <div
+                  className={cn(
+                    "h-full transition-all",
+                    currentCpu >= 80 ? "bg-red-500" : currentCpu >= 50 ? "bg-orange-500" : "bg-green-500"
+                  )}
+                  style={{ width: `${currentCpu}%` }}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {isMonitoring ? 'MONITORING' : 'STOPPED'}
+              </div>
+            </TerminalGridCell>
 
             {/* Memory */}
-            <div className="border border-border p-4">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">MEMORY</div>
-              <div className="text-2xl font-bold">{memPercent}%</div>
-              <TerminalProgressBar value={memPercent} width={15} showPercentage={false} className="mt-2" />
-              <div className="text-[10px] text-muted-foreground mt-1">
-                {currentMem ? formatBytes(currentMem.used) : '--'} / {currentMem ? formatBytes(currentMem.total) : '--'}
+            <TerminalGridCell>
+              <div className="flex justify-between items-start mb-3">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">MEMORY</div>
+                <div className="text-right">
+                  <div className={cn(
+                    "text-xl font-bold",
+                    memPercent >= 90 ? "text-red-500" : memPercent >= 70 ? "text-orange-500" : ""
+                  )}>{memPercent}%</div>
+                  <div className="text-[10px] text-muted-foreground">USED</div>
+                </div>
               </div>
-            </div>
+              <div className="w-full bg-muted/30 h-4 mb-3">
+                <div
+                  className={cn(
+                    "h-full transition-all",
+                    memPercent >= 90 ? "bg-red-500" : memPercent >= 70 ? "bg-orange-500" : "bg-green-500"
+                  )}
+                  style={{ width: `${memPercent}%` }}
+                />
+              </div>
+              <div className="text-xs">
+                <span className="text-muted-foreground">USED </span>
+                {currentMem ? formatBytes(currentMem.used) : '--'}
+              </div>
+            </TerminalGridCell>
 
             {/* Battery */}
-            <div className="border border-border p-4">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">BATTERY</div>
-              <div className={cn(
-                "text-2xl font-bold",
-                (battery?.level || 0) <= 20 ? "text-red-500" : (battery?.level || 0) <= 50 ? "text-orange-500" : "text-green-500"
-              )}>
-                {battery?.level || 0}%
+            <TerminalGridCell>
+              <div className="flex justify-between items-start mb-3">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">BATTERY</div>
+                <div className="text-right">
+                  <div className={cn(
+                    "text-xl font-bold",
+                    (battery?.level || 0) <= 20 ? "text-red-500" : (battery?.level || 0) <= 50 ? "text-orange-500" : "text-green-500"
+                  )}>{battery?.level || 0}%</div>
+                  <div className="text-[10px] text-muted-foreground">{battery?.status || '--'}</div>
+                </div>
               </div>
-              <TerminalProgressBar value={battery?.level || 0} width={15} showPercentage={false} className="mt-2" />
-              <div className="text-[10px] text-muted-foreground mt-1">{battery?.status || '--'}</div>
-            </div>
+              <div className="w-full bg-muted/30 h-4 mb-3">
+                <div
+                  className={cn(
+                    "h-full transition-all",
+                    (battery?.level || 0) <= 20 ? "bg-red-500" : (battery?.level || 0) <= 50 ? "bg-orange-500" : "bg-green-500"
+                  )}
+                  style={{ width: `${battery?.level || 0}%` }}
+                />
+              </div>
+              <div className="text-xs">
+                <span className="text-muted-foreground">HEALTH </span>
+                {battery ? 'GOOD' : '--'}
+              </div>
+            </TerminalGridCell>
 
             {/* Temperature */}
-            <div className="border border-border p-4">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">TEMPERATURE</div>
-              <div className={cn(
-                "text-2xl font-bold",
-                (battery?.temperature || 0) >= 45 ? "text-red-500" : (battery?.temperature || 0) >= 35 ? "text-orange-500" : ""
-              )}>
-                {battery?.temperature || 0}°C
+            <TerminalGridCell>
+              <div className="flex justify-between items-start mb-3">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">TEMPERATURE</div>
+                <div className="text-right">
+                  <div className={cn(
+                    "text-xl font-bold",
+                    (battery?.temperature || 0) >= 45 ? "text-red-500" : (battery?.temperature || 0) >= 35 ? "text-orange-500" : ""
+                  )}>{battery?.temperature || 0}°C</div>
+                  <div className="text-[10px] text-muted-foreground">BATTERY</div>
+                </div>
               </div>
-              <div className="text-[10px] text-muted-foreground mt-2">
-                VOLTAGE: {battery?.voltage || 0}V
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between border-b border-border/50 pb-2">
+                  <span className="text-muted-foreground">VOLTAGE</span>
+                  <span>{battery?.voltage || 0}V</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">STATUS</span>
+                  <span className={battery?.status === 'CHARGING' ? 'text-green-500' : ''}>{battery?.status || '--'}</span>
+                </div>
               </div>
-            </div>
-          </div>
+            </TerminalGridCell>
+          </TerminalGrid>
 
-          {/* CPU History */}
-          <div className="border border-border p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">CPU HISTORY</div>
-            {cpuHistory.length === 0 ? (
-              <div className="text-center text-muted-foreground py-4 text-xs">
-                {isMonitoring ? <TerminalSpinner label="COLLECTING" /> : 'START MONITORING TO SEE DATA'}
-              </div>
-            ) : (
-              <div className="flex items-end gap-1 h-16">
-                {cpuHistory.map((d, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 bg-orange-500"
-                    style={{ height: `${d.usage}%` }}
-                    title={`${d.usage}%`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          {/* CPU History - Sparkline */}
+          <SparklineChart
+            data={cpuHistory}
+            getValue={(d) => (d as CpuData).usage}
+            color="text-orange-500"
+            label="CPU HISTORY"
+            currentValue={currentCpu}
+            isMonitoring={isMonitoring}
+          />
 
-          {/* Memory History */}
-          <div className="border border-border p-4">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">MEMORY HISTORY</div>
-            {memoryHistory.length === 0 ? (
-              <div className="text-center text-muted-foreground py-4 text-xs">
-                {isMonitoring ? <TerminalSpinner label="COLLECTING" /> : 'START MONITORING TO SEE DATA'}
-              </div>
-            ) : (
-              <div className="flex items-end gap-1 h-16">
-                {memoryHistory.map((d, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 bg-green-500"
-                    style={{ height: `${(d.used / d.total) * 100}%` }}
-                    title={`${Math.round((d.used / d.total) * 100)}%`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Memory History - Sparkline */}
+          <SparklineChart
+            data={memoryHistory}
+            getValue={(d) => {
+              const m = d as MemoryData;
+              return m.total ? Math.round((m.used / m.total) * 100) : 0;
+            }}
+            color="text-green-500"
+            label="MEMORY HISTORY"
+            currentValue={memPercent}
+            isMonitoring={isMonitoring}
+          />
 
           {/* Top Processes */}
           <div className="border border-border">

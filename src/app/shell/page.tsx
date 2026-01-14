@@ -30,7 +30,7 @@ interface OutputEntry {
 }
 
 export default function ShellPage() {
-  const { connectionState } = useDevice();
+  const { connectionState, handleConnectionError } = useDevice();
   const [command, setCommand] = useState('');
   const [output, setOutput] = useState<OutputEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -111,11 +111,14 @@ export default function ShellPage() {
         setIsRunning(false);
       }
     } catch (err) {
-      addOutput('error', err instanceof Error ? err.message : 'Command failed');
+      // Check if this is a connection error (device unplugged)
+      if (!handleConnectionError(err)) {
+        addOutput('error', err instanceof Error ? err.message : 'Command failed');
+      }
       setIsRunning(false);
       setIsStreaming(false);
     }
-  }, [connectionState, addOutput, addToHistory, cmdTimeout]);
+  }, [connectionState, addOutput, addToHistory, cmdTimeout, handleConnectionError]);
 
   const stopCommand = useCallback(() => {
     if (stopFnRef.current) {
@@ -236,19 +239,17 @@ export default function ShellPage() {
         </div>
 
         {/* Quick Commands */}
-        <div className="border-b border-border p-2 flex-shrink-0 overflow-x-auto">
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-muted-foreground mr-2">QUICK:</span>
-            {PRESET_COMMANDS.map((preset) => (
-              <button
-                key={preset.command}
-                onClick={() => runPreset(preset.command)}
-                className="px-2 py-1 border border-border hover:bg-muted whitespace-nowrap"
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
+        <div className="border-b border-border p-2 flex-shrink-0 flex items-center gap-1 overflow-x-auto text-xs">
+          <span className="text-muted-foreground mr-1">QUICK:</span>
+          {PRESET_COMMANDS.map((preset) => (
+            <button
+              key={preset.command}
+              onClick={() => runPreset(preset.command)}
+              className="px-2 py-0.5 border border-border hover:bg-muted whitespace-nowrap"
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
 
         {/* Terminal Output */}
@@ -306,7 +307,7 @@ export default function ShellPage() {
               onChange={(e) => setCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Enter command..."
-              className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+              className="terminal-input flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
               disabled={isRunning && !isStreaming}
               autoComplete="off"
             />

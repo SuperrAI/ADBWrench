@@ -205,27 +205,36 @@ function parseStorageInfo(dfOutput: string): StorageInfo {
 }
 
 /**
- * Format storage size to human readable format
+ * Format storage size to GB with one decimal place
  */
 function formatStorageSize(size: string): string {
-  // If already has unit suffix (G, M, K), keep it
-  if (/^\d+(\.\d+)?[GMKT]?$/i.test(size)) {
-    const match = size.match(/^(\d+(?:\.\d+)?)([GMKT])?$/i);
-    if (match) {
-      const value = parseFloat(match[1]);
-      const unit = (match[2] || '').toUpperCase();
+  const match = size.match(/^(\d+(?:\.\d+)?)([GMKT])?$/i);
+  if (!match) return size;
 
-      if (unit === 'G' || (!unit && value > 1000000000)) {
-        return `${value.toFixed(1)} GB`;
-      } else if (unit === 'M' || (!unit && value > 1000000)) {
-        return `${value.toFixed(1)} MB`;
-      } else if (unit === 'K' || (!unit && value > 1000)) {
-        return `${value.toFixed(1)} KB`;
-      }
-      return size;
-    }
+  const value = parseFloat(match[1]);
+  const unit = (match[2] || 'K').toUpperCase(); // df usually returns in 1K blocks
+
+  // Convert to GB
+  let gbValue: number;
+  switch (unit) {
+    case 'G':
+      gbValue = value;
+      break;
+    case 'M':
+      gbValue = value / 1024;
+      break;
+    case 'K':
+      gbValue = value / (1024 * 1024);
+      break;
+    case 'T':
+      gbValue = value * 1024;
+      break;
+    default:
+      // Assume KB if no unit
+      gbValue = value / (1024 * 1024);
   }
-  return size;
+
+  return `${gbValue.toFixed(1)} GB`;
 }
 
 /**

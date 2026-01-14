@@ -16,6 +16,7 @@ const StatusDot = ({ state }: { state: ConnectionState }) => {
     connecting: Orange.O500,
     unauthorized: Red.R500,
     connected: Green.G500,
+    'connection-lost': Red.R500,
   };
 
   return (

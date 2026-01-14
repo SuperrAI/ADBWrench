@@ -8,6 +8,7 @@ import { DeviceProvider } from '@/context/device-context';
 import { LayoutProvider } from '@/context/layout-context';
 import { KeyboardShortcutsProvider } from '@/components/ui/KeyboardShortcutsProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { ConnectionLostOverlay } from '@/components/ui/ConnectionLostOverlay';
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
@@ -57,6 +58,7 @@ export default function RootLayout({
                   <KeyboardShortcutsProvider>
                     <ErrorBoundary>
                       {children}
+                      <ConnectionLostOverlay />
                     </ErrorBoundary>
                   </KeyboardShortcutsProvider>
                 </PWAProvider>

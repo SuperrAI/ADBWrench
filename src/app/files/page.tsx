@@ -14,7 +14,7 @@ import {
 } from '@/services/adb';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { TerminalSpinner, TerminalProgressBar } from '@/components/ui/TerminalUI';
+import { TerminalProgressBar, TerminalLoadingState } from '@/components/ui/TerminalUI';
 
 const SHORTCUTS = [
   { label: 'SDCARD', path: '/sdcard' },
@@ -285,9 +285,7 @@ export default function FilesPage() {
         {/* File List */}
         <div className="flex-1 overflow-y-auto">
           {loading && entries.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <TerminalSpinner label="LOADING" />
-            </div>
+            <TerminalLoadingState label="LOADING DIRECTORY" sublabel="Fetching file listing..." />
           ) : entries.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs">
               <pre className="mb-4">{`[EMPTY]`}</pre>
