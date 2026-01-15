@@ -7,14 +7,24 @@ export type ConnectionState = 'disconnected' | 'connecting' | 'unauthorized' | '
 
 // Helper to detect USB transfer/connection errors
 function isConnectionError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    // Handle specific DOMException types
+    if (error.name === 'NotFoundError' || error.name === 'NetworkError') {
+      return true;
+    }
+  }
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
+    const name = error.name?.toLowerCase() || '';
     return (
+      name === 'notfounderror' ||
+      name === 'networkerror' ||
       message.includes('transfer error') ||
       message.includes('device unavailable') ||
       message.includes('device has been lost') ||
       message.includes('no device connected') ||
       message.includes('the device was disconnected') ||
+      message.includes('transferin') ||
       message.includes('networkerror')
     );
   }
@@ -74,12 +84,11 @@ export function DeviceProvider({ children }: PropsWithChildren) {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
   const [lastConnectedDevice, setLastConnectedDevice] = useState<DeviceInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isWebUsbSupported, setIsWebUsbSupported] = useState(false);
-
-  // Check WebUSB support on mount
-  useEffect(() => {
-    setIsWebUsbSupported(adbService.isWebUsbSupported());
-  }, []);
+  // Initialize WebUSB support synchronously to avoid flicker
+  const [isWebUsbSupported] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return adbService.isWebUsbSupported();
+  });
 
   // Try to auto-reconnect on mount
   useEffect(() => {
@@ -103,6 +112,34 @@ export function DeviceProvider({ children }: PropsWithChildren) {
     autoConnect();
   }, [isWebUsbSupported]);
 
+  // Listen for USB connect events - for auto-detection when a device is plugged in
+  useEffect(() => {
+    if (!isWebUsbSupported || typeof navigator === 'undefined' || !navigator.usb) return;
+
+    const handleConnect = async () => {
+      // Only try auto-connect if we're in disconnected state
+      if (connectionState !== 'disconnected') return;
+
+      try {
+        const result = await adbService.tryAutoReconnect(() => {
+          setConnectionState('unauthorized');
+        });
+
+        if (result) {
+          setDeviceInfo(result.deviceInfo);
+          setConnectionState('connected');
+        }
+      } catch {
+        // Silent fail for auto-reconnect
+      }
+    };
+
+    navigator.usb.addEventListener('connect', handleConnect);
+    return () => {
+      navigator.usb.removeEventListener('connect', handleConnect);
+    };
+  }, [isWebUsbSupported, connectionState]);
+
   // Listen for USB disconnect events
   useEffect(() => {
     if (!isWebUsbSupported || typeof navigator === 'undefined' || !navigator.usb) return;
@@ -114,8 +151,12 @@ export function DeviceProvider({ children }: PropsWithChildren) {
         setLastConnectedDevice(deviceInfo);
         setDeviceInfo(null);
         setConnectionState('connection-lost');
-        // Clean up the ADB connection
-        adbService.disconnect().catch(() => {});
+        // Clean up the ADB connection - wrap in try-catch since device may already be gone
+        try {
+          adbService.disconnect().catch(() => {});
+        } catch {
+          // Ignore errors - device is already disconnected
+        }
       }
     };
 
@@ -154,17 +195,24 @@ export function DeviceProvider({ children }: PropsWithChildren) {
       for (const d of devices) {
         try {
           // Accessing properties on a disconnected device throws an error
-          authorizedDevices.push({
-            serial: d.serial,
-            name: d.name || d.serial,
-          });
-        } catch {
-          // Device was disconnected, skip it
+          // Access each property separately to catch errors properly
+          const serial = d.serial;
+          let name = serial;
+          try {
+            name = d.name || serial;
+          } catch {
+            // name access failed, use serial
+          }
+          authorizedDevices.push({ serial, name });
+        } catch (err) {
+          // Device was disconnected or USB transfer error, skip it
+          console.warn('Error accessing device properties:', err);
         }
       }
 
       return authorizedDevices;
-    } catch {
+    } catch (err) {
+      console.warn('Error getting authorized devices:', err);
       return [];
     }
   }, [isWebUsbSupported]);
@@ -245,7 +293,7 @@ export function DeviceProvider({ children }: PropsWithChildren) {
     }
   }, [isWebUsbSupported]);
 
-  // Legacy connect - tries authorized devices first, then falls back to browser picker
+  // Smart connect - tries already-paired devices first, then falls back to browser picker
   const connect = useCallback(async () => {
     if (!isWebUsbSupported) {
       setError('WebUSB is not supported in this browser. Please use Chrome, Edge, or Opera.');
@@ -256,7 +304,19 @@ export function DeviceProvider({ children }: PropsWithChildren) {
     setError(null);
 
     try {
-      // Request device from user
+      // First, try to connect to an already-paired device
+      const result = await adbService.tryAutoReconnect(() => {
+        setConnectionState('unauthorized');
+      });
+
+      if (result) {
+        // Successfully connected to a paired device
+        setDeviceInfo(result.deviceInfo);
+        setConnectionState('connected');
+        return;
+      }
+
+      // No paired devices available, show browser picker
       const device = await adbService.requestDevice();
 
       if (!device) {
@@ -265,13 +325,13 @@ export function DeviceProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      // Connect to the device
-      const result = await adbService.connectToDevice(device, () => {
+      // Connect to the selected device
+      const connectResult = await adbService.connectToDevice(device, () => {
         // Called when waiting for user authorization on device
         setConnectionState('unauthorized');
       });
 
-      setDeviceInfo(result.deviceInfo);
+      setDeviceInfo(connectResult.deviceInfo);
       setConnectionState('connected');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect to device';
@@ -312,8 +372,12 @@ export function DeviceProvider({ children }: PropsWithChildren) {
         setConnectionState(lastConnectedDevice ? 'connection-lost' : 'disconnected');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reconnect';
-      setError(message);
+      // Don't show connection errors (NotFoundError, NetworkError) as error messages
+      // These are expected when device is unplugged
+      if (!isConnectionError(err)) {
+        const message = err instanceof Error ? err.message : 'Failed to reconnect';
+        setError(message);
+      }
       // If reconnect failed from connection-lost, stay in connection-lost
       setConnectionState(lastConnectedDevice ? 'connection-lost' : 'disconnected');
     }

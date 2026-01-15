@@ -1,12 +1,6 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="512" height="512" fill="#FFFFFF"/>
-  <!-- Border -->
-  <rect x="16" y="16" width="480" height="480" stroke="#000000" stroke-width="8" fill="none"/>
-  <!-- Orange top accent -->
-  <rect x="16" y="16" width="480" height="24" fill="#FF6F1E"/>
-  <!-- Wrench icon centered -->
-  <path d="M320 128L256 192L192 128" stroke="#000000" stroke-width="16" stroke-linecap="square"/>
-  <path d="M192 128V304L224 336H288L320 304V128" stroke="#000000" stroke-width="16" stroke-linecap="square"/>
-  <rect x="224" y="336" width="64" height="96" stroke="#000000" stroke-width="16"/>
+  <!-- > character -->
+  <path d="M64 96 L224 256 L64 416" stroke="#f97316" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- _ character -->
+  <path d="M288 416 L448 416" stroke="#f97316" stroke-width="64" stroke-linecap="round"/>
 </svg>

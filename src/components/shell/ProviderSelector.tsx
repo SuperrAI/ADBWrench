@@ -63,13 +63,13 @@ export function ProviderSelector({
                   onProviderChange(provider.id);
                 }}
                 className={cn(
-                  'w-full px-3 py-2 text-left text-xs hover:bg-muted flex items-center justify-between',
-                  selectedProvider === provider.id && 'bg-muted'
+                  'w-full px-3 py-2 text-left text-xs hover:bg-muted hover:text-orange-500 flex items-center justify-between transition-colors',
+                  selectedProvider === provider.id && 'bg-orange-500/10 text-orange-500'
                 )}
               >
                 <span>{provider.name}</span>
                 {selectedProvider === provider.id && (
-                  <span className="text-green-500">●</span>
+                  <span className="text-orange-500">●</span>
                 )}
               </button>
             ))}

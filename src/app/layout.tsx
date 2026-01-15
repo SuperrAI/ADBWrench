@@ -18,8 +18,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'ADB Wrench',
-  description: 'Browser-based Android device debugging and management tool',
+  title: 'ADB Wrench - Browser-based Android debugging tool',
+  description: 'Browser-based Android debugging tool',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: '/icons/icon-192x192.png',
-    apple: '/icons/apple-touch-icon.png',
+    icon: '/icons/icon.svg',
+    apple: '/icons/icon.svg',
   },
 };
 

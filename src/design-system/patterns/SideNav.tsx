@@ -119,7 +119,7 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
           rel="noopener noreferrer"
           className="font-mono text-xs text-muted-foreground mt-1 block hover:text-orange-500 transition-colors"
         >
-          By Superr.ai
+          By Superr
         </a>
       </div>
 

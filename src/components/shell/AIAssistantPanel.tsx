@@ -135,7 +135,7 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
       </div>
 
       {/* Settings Panel */}
-      {showSettings && (
+      {showSettings ? (
         <div className="border-b border-border p-3 space-y-3 flex-shrink-0 bg-muted/30">
           <div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
@@ -174,10 +174,20 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
             Your key is stored locally in the browser. We never send it to our servers.
           </div>
         </div>
+      ) : (
+        <div className="border-b border-border p-2 flex-shrink-0 flex items-center text-xs">
+          <span className="text-muted-foreground">
+            {isConfigured
+              ? `${config?.provider?.toUpperCase()} · ${config?.model?.split('/').pop()?.toUpperCase()}`
+              : 'CLICK ⚙ TO CONFIGURE'
+            }
+          </span>
+        </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto p-3">
         {messages.length === 0 && !isLoading ? (
           <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
             <pre className="text-2xl mb-3">{'?_'}</pre>
@@ -226,6 +236,7 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
             <div ref={messagesEndRef} />
           </>
         )}
+        </div>
       </div>
 
       {/* Error */}

@@ -83,7 +83,13 @@ export async function getDevices(): Promise<AdbDaemonWebUsbDevice[]> {
   if (!manager) {
     return [];
   }
-  return manager.getDevices();
+  try {
+    return await manager.getDevices();
+  } catch (error) {
+    // Handle case where device was unplugged - USB transfer errors
+    console.warn('Error getting devices:', error);
+    return [];
+  }
 }
 
 /**
@@ -167,11 +173,22 @@ async function getDeviceInfo(adb: Adb, serial: string): Promise<DeviceInfo> {
  * Disconnect from the current device
  */
 export async function disconnect(): Promise<void> {
-  if (currentAdb) {
-    await currentAdb.close();
-    currentAdb = null;
-  }
+  const adb = currentAdb;
+  const device = currentDevice;
+
+  // Clear references first to prevent any further operations
+  currentAdb = null;
   currentDevice = null;
+
+  if (adb) {
+    try {
+      await adb.close();
+    } catch (error) {
+      // Ignore errors during disconnect - device may already be gone
+      // Common errors: NotFoundError, NetworkError when device was unplugged
+      console.warn('Error during disconnect (ignored):', error);
+    }
+  }
 }
 
 /**
@@ -196,12 +213,20 @@ export async function shell(command: string): Promise<string> {
     throw new Error('No device connected');
   }
 
-  // shellProtocol returns WaitResult with stdout, noneProtocol returns string directly
-  if (currentAdb.subprocess.shellProtocol) {
-    const result = await currentAdb.subprocess.shellProtocol.spawnWaitText(command.split(' '));
-    return result.stdout;
-  } else {
-    return currentAdb.subprocess.noneProtocol.spawnWaitText(command.split(' '));
+  try {
+    // shellProtocol returns WaitResult with stdout, noneProtocol returns string directly
+    if (currentAdb.subprocess.shellProtocol) {
+      const result = await currentAdb.subprocess.shellProtocol.spawnWaitText(command.split(' '));
+      return result.stdout;
+    } else {
+      return currentAdb.subprocess.noneProtocol.spawnWaitText(command.split(' '));
+    }
+  } catch (error) {
+    // Re-throw with more context, but let the caller handle connection errors
+    if (error instanceof DOMException && (error.name === 'NotFoundError' || error.name === 'NetworkError')) {
+      throw error; // Let device-context handle this as a connection error
+    }
+    throw error;
   }
 }
 
@@ -300,29 +325,42 @@ export async function tryAutoReconnect(
     return null;
   }
 
+  let devices: AdbDaemonWebUsbDevice[];
   try {
-    const devices = await getDevices();
+    devices = await getDevices();
+  } catch (err) {
+    // Error getting devices - USB not available or error
+    console.warn('Error getting devices for auto-reconnect:', err);
+    return null;
+  }
 
-    // Find device by serial, handling disconnected devices that throw on property access
-    let device: AdbDaemonWebUsbDevice | undefined;
-    for (const d of devices) {
-      try {
-        if (d.serial === lastSerial) {
-          device = d;
-          break;
-        }
-      } catch {
-        // Device disconnected, skip it
+  // Find device by serial, handling disconnected devices that throw on property access
+  let device: AdbDaemonWebUsbDevice | undefined;
+  for (const d of devices) {
+    try {
+      // Accessing serial on a disconnected device may throw
+      const serial = d.serial;
+      if (serial === lastSerial) {
+        device = d;
+        break;
       }
+    } catch (err) {
+      // Device disconnected or USB transfer error, skip it
+      // This catches NotFoundError, NetworkError, etc.
+      console.warn('Error accessing device serial (device may be disconnected):', err);
+      continue;
     }
+  }
 
-    if (!device) {
-      return null;
-    }
+  if (!device) {
+    return null;
+  }
 
+  try {
     return await connectToDevice(device, onAuthPending);
-  } catch {
-    // Device no longer authorized or not connected
+  } catch (err) {
+    // Device no longer authorized, not connected, or USB error
+    console.warn('Auto-reconnect failed:', err);
     return null;
   }
 }

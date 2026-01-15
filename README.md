@@ -1,4 +1,4 @@
-# SuperrWrench
+# ADBWrench
 
 A browser-based Android device debugging and management PWA built on WebUSB. Enables IT service personnel to perform device diagnostics, maintenance, and debugging without installing desktop software.
 

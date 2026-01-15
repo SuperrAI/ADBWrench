@@ -93,13 +93,6 @@ export default function AppsPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  _____
- | APP |
- |_____|
- |[  ]|
- |____|`}
-            </pre>
             <div className="text-sm mb-2">APP MANAGER DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to manage applications.
