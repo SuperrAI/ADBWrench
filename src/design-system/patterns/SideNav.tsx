@@ -114,7 +114,7 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
           <div className="font-mono text-sm uppercase tracking-wider">ADB Wrench</div>
         </Link>
         <a
-          href="https://superr.ai"
+          href="https://x.com/superr_ai"
           target="_blank"
           rel="noopener noreferrer"
           className="font-mono text-xs text-muted-foreground mt-1 block hover:text-orange-500 transition-colors"

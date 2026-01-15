@@ -259,7 +259,7 @@ export default function Home() {
               <span className="text-orange-500">&gt;_</span>
               <span>ADB Wrench</span>
               <span className="text-muted-foreground/40">By</span>
-              <a href="https://superr.ai" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
+              <a href="https://x.com/superr_ai" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
                 Superr
               </a>
             </div>
