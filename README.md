@@ -1,65 +1,87 @@
 # ADBWrench
 
-A browser-based Android device debugging and management PWA built on WebUSB. Enables IT service personnel to perform device diagnostics, maintenance, and debugging without installing desktop software.
+**ADB in your browser. No install. No drivers. Just plug in and debug.**
 
-## Features
+ADBWrench is a browser-based Android debugging tool built on WebUSB. It implements the ADB protocol entirely in JavaScript, giving you full device access without installing Android SDK, platform-tools, or USB drivers.
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Device Connection** | USB discovery, ADB handshake, RSA key management, multi-device support | Done |
-| **Device Dashboard** | Device info, build details, hardware specs, storage, battery status | Done |
-| **Shell Interface** | Interactive terminal with command history and preset commands | Done |
-| **Logcat Viewer** | Real-time log streaming with filtering, search, and export | Done |
-| **Screenshot/Recording** | Capture screenshots and screen recordings | Done |
-| **App Manager** | List, install, uninstall, and manage applications | Done |
-| **File Browser** | Browse, upload, and download files from device | Done |
-| **Device Controls** | Reboot options, screen controls, volume, brightness, Wi-Fi toggle | Done |
-| **Performance Monitor** | Real-time CPU/memory graphs, process monitoring | Done |
-| **Bugreport Generator** | Generate and download Android bugreports | Done |
-| **Settings Editor** | View and modify system/secure/global settings | Done |
-| **PWA Support** | Installable, offline-capable, responsive design | Done |
+## Why This Exists
 
-## Tech Stack
+Every Android developer knows the drill: install Android Studio (or at least platform-tools), wrestle with USB drivers on Windows, hope `adb devices` actually shows your device. For quick debugging tasks, that's a lot of friction.
 
-- **Framework:** Next.js 14 (App Router, React Server Components)
-- **Language:** TypeScript (strict mode)
-- **UI:** Shadcn UI + Radix UI + Tailwind CSS
-- **ADB:** WebUSB API with @yume-chan/adb
-- **Data:** Apollo Client (GraphQL)
-- **PWA:** next-pwa with service worker
+ADBWrench removes all of it. Open a URL, grant USB permission, and you're connected.
 
-## Browser Support
+## What You Can Do
 
-Requires WebUSB API - Chromium-based browsers only:
-- Chrome 89+
-- Edge 89+
+### Shell
+Full interactive ADB shell in your browser. Command history persists across sessions. Supports all standard shell commands - `pm`, `am`, `dumpsys`, `getprop`, you name it. Output streams in real-time with proper stdout/stderr separation.
 
-## Getting Started
+### Logcat
+Real-time log streaming with priority filtering (Verbose → Fatal). Filter by tag, search through logs, pause/resume stream. No more `adb logcat | grep` chains - just type and filter.
 
-### Prerequisites
+### File Browser
+Navigate the device filesystem visually. Drag-and-drop file uploads, click-to-download pulls. Create directories, delete files, view permissions. Handles large files with chunked transfers and progress indication.
 
-- Node.js 18+
-- Android device with USB debugging enabled
+### App Manager
+See all installed packages (system + user). Install APKs by drag-and-drop. Uninstall, force-stop, clear data, enable/disable packages. View package details including version, install location, and permissions.
 
-### Installation
+### Screenshot & Screen Record
+One-click screen capture, downloads as PNG. Screen recording saves as MP4. Useful for bug reports, documentation, or grabbing assets off a test device.
 
-```bash
-npm install
-npm run dev
-```
+### Performance Monitor
+Live graphs for CPU and memory usage. View running processes sorted by resource consumption. Identify performance bottlenecks without connecting Android Studio's profiler.
 
-Open [http://localhost:3000](http://localhost:3000) in Chrome/Edge.
+### Device Controls
+Reboot (normal, recovery, bootloader), adjust volume and brightness, toggle screen on/off. Quick actions without hunting through shell commands.
 
-### Connecting a Device
+### Settings Editor
+Browse and modify `system`, `secure`, and `global` settings namespaces. Search settings by name. See current values and edit directly. Useful for toggling developer options or testing setting-dependent behavior.
 
-1. Enable USB debugging on your Android device
-2. Connect via USB cable
-3. Click "Connect Device" and select your device
-4. Accept the USB debugging prompt on your device
+### Bugreport
+Generate full Android bugreports and download as ZIP. Same output as `adb bugreport` - includes system logs, dumpsys output, and device state. Ready to attach to bug trackers.
+
+---
+
+Everything runs client-side. Your device data never touches a server.
+
+## Who It's For
+
+- **Android developers** who want quick device access without full SDK setup
+- **QA engineers** debugging issues on physical devices
+- **IT support** managing Android device fleets
+- **Hobbyists** exploring their devices without command line
+- **Anyone** who's ever typed `adb devices` and seen nothing
+
+## Quick Start
+
+1. Open ADBWrench in Chrome/Edge
+2. Click "Connect Device"
+3. Select your Android device from the USB prompt
+4. Approve the debugging prompt on your device
+5. Done
+
+No install. No PATH configuration. No driver hunting.
+
+## Technical Details
+
+- Built with Next.js 14, TypeScript, and [@yume-chan/adb](https://github.com/yume-chan/ya-webadb)
+- RSA keys stored in IndexedDB (persistent across sessions)
+- PWA with offline support - install it locally
+- Chunked file transfers for large files
+- Works on Chrome, Edge, and other Chromium browsers (WebUSB requirement)
+
+## Limitations
+
+Being honest about what this isn't:
+
+- **No wireless ADB** - WebUSB requires physical USB connection
+- **No screen mirroring** - scrcpy still wins for that
+- **Chromium only** - Firefox and Safari don't support WebUSB
+- **Single device** - no fleet management (yet)
 
 ## Development
 
 ```bash
+npm install
 npm run dev              # Start development server
 npm run build            # Build for production
 npm run start            # Start production server
@@ -67,74 +89,13 @@ npm run lint             # Run ESLint
 npm run format           # Format with Prettier
 ```
 
-## Project Structure
+## The Stack
 
 ```
-src/
-├── app/                 # Next.js App Router pages
-│   ├── apps/           # Application Manager
-│   ├── bugreport/      # Bugreport Generator
-│   ├── controls/       # Device Controls
-│   ├── dashboard/      # Device Information
-│   ├── files/          # File Browser
-│   ├── logcat/         # Logcat Viewer
-│   ├── performance/    # Performance Monitor
-│   ├── screenshot/     # Screenshot & Recording
-│   ├── settings/       # Settings Editor
-│   └── shell/          # Shell Interface
-├── components/          # React components
-│   ├── providers/      # Context providers
-│   └── ui/             # Shadcn UI components
-├── context/            # React contexts (device, theme)
-├── design-system/      # Reusable design system
-│   ├── foundations/    # Design tokens
-│   ├── components/     # Base components
-│   └── patterns/       # Layout patterns
-├── lib/                # Utilities and ADB helpers
-└── styles/             # Global CSS
+WebUSB API → ADB Protocol (TypeScript) → React UI
 ```
 
-## ADB Commands Reference
-
-```bash
-# Device Info
-getprop ro.product.model
-getprop ro.build.fingerprint
-
-# Package Management
-pm list packages
-pm install /path/to/app.apk
-pm uninstall com.package.name
-
-# Screen Capture
-screencap -p /sdcard/screen.png
-screenrecord /sdcard/video.mp4
-
-# System Controls
-reboot
-reboot recovery
-reboot bootloader
-
-# Logs
-logcat -d
-logcat -c
-```
-
-## Security
-
-- RSA keys stored securely in IndexedDB
-- No data transmitted to external servers
-- No analytics or telemetry
-- All operations local to browser + device
-
-## Out of Scope (v1.0)
-
-- Screen mirroring / remote control
-- Wireless ADB (requires server component)
-- Multi-user collaboration
-- Device fleet management
-- iOS support
-- Firefox/Safari support (no WebUSB)
+All ADB communication happens through the browser's WebUSB API. The [@yume-chan/adb](https://github.com/yume-chan/ya-webadb) library handles protocol implementation. We built the UI and feature set on top.
 
 ## Acknowledgments
 
@@ -155,3 +116,9 @@ This project is licensed under the [PolyForm Noncommercial License 1.0.0](./LICE
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
 For development setup and code style guidelines, see [CLAUDE.md](./CLAUDE.md).
+
+---
+
+Built by [Superr](https://x.com/superr_ai)
+
+*Tested on Android 8.0+ devices. USB debugging must be enabled in Developer Options.*
