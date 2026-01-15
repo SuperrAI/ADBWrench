@@ -282,9 +282,9 @@ export default function ShellPage() {
                 className={cn(
                   'px-2 py-1 border flex items-center gap-1.5',
                   isPanelOpen
-                    ? 'border-blue-500 text-blue-500 bg-blue-500/10'
+                    ? 'border-orange-500 text-orange-500 bg-orange-500/10'
                     : 'border-border hover:bg-muted',
-                  isConfigured && !isPanelOpen && 'text-blue-500'
+                  isConfigured && !isPanelOpen && 'text-orange-500'
                 )}
                 title="AI Assistant"
               >

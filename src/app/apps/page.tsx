@@ -147,7 +147,7 @@ export default function AppsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="package name..."
-                className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-40 focus:border-orange-500"
+                className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-40 focus:border-foreground"
               />
             </div>
 
@@ -255,7 +255,7 @@ export default function AppsPage() {
         </div>
 
         {/* Detail Panel */}
-        <div className="w-[320px] flex-shrink-0 flex flex-col overflow-hidden bg-background border-l border-border">
+        <div className="w-[320px] flex-shrink-0 flex flex-col overflow-hidden bg-background">
           {selectedPkgName ? (
             <>
               {/* Detail Header */}

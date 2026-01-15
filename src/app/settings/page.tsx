@@ -264,7 +264,7 @@ export default function SettingsPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="SEARCH..."
-              className="bg-transparent border border-border px-3 py-1 text-xs outline-none focus:border-orange-500 w-full sm:w-48"
+              className="bg-transparent border border-border px-3 py-1 text-xs outline-none focus:border-foreground w-full sm:w-48"
             />
           </div>
 
@@ -349,7 +349,7 @@ export default function SettingsPage() {
                   <textarea
                     value={editValue}
                     onChange={e => setEditValue(e.target.value)}
-                    className="w-full h-20 bg-transparent border border-border p-2 outline-none focus:border-orange-500 resize-none"
+                    className="w-full h-20 bg-transparent border border-border p-2 outline-none focus:border-foreground resize-none"
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">

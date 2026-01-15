@@ -91,40 +91,46 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xs uppercase tracking-wider">AI ASSIST</h2>
-          {isConfigured && (
-            <span className="text-green-500 text-[10px]">●</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={cn(
-              'p-1.5 hover:bg-muted',
-              showSettings && 'bg-muted'
-            )}
-            title="Settings"
-          >
-            <Settings className="w-3 h-3" />
-          </button>
-          {messages.length > 0 && (
+      <div className="border-b border-border p-3 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm uppercase tracking-wider">AI ASSIST</h2>
+            <div className="text-xs text-muted-foreground mt-1">
+              {isConfigured ? (
+                <><span className="text-green-500">●</span> READY</>
+              ) : (
+                <span>NOT CONFIGURED</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
             <button
-              onClick={clearHistory}
-              className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground"
-              title="Clear history"
+              onClick={() => setShowSettings(!showSettings)}
+              className={cn(
+                'p-1.5 hover:bg-muted',
+                showSettings && 'bg-muted'
+              )}
+              title="Settings"
             >
-              <Trash2 className="w-3 h-3" />
+              <Settings className="w-3 h-3" />
             </button>
-          )}
-          <button
-            onClick={() => setPanelOpen(false)}
-            className="p-1.5 hover:bg-muted"
-            title="Close panel"
-          >
-            <X className="w-3 h-3" />
-          </button>
+            {messages.length > 0 && (
+              <button
+                onClick={clearHistory}
+                className="p-1.5 hover:bg-muted text-muted-foreground hover:text-foreground"
+                title="Clear history"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+            <button
+              onClick={() => setPanelOpen(false)}
+              className="p-1.5 hover:bg-muted"
+              title="Close panel"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -230,9 +236,9 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
       )}
 
       {/* Input */}
-      <div className="border-t border-border p-3 flex-shrink-0">
+      <div className="border-t border-border p-3 flex-shrink-0 bg-background">
         <div className="flex items-center gap-2">
-          <span className="text-blue-500 text-sm">?</span>
+          <span className="text-orange-500 text-sm">?</span>
           <input
             ref={inputRef}
             type="text"
@@ -260,6 +266,9 @@ export function AIAssistantPanel({ className }: AIAssistantPanelProps) {
               [ ASK ]
             </button>
           )}
+        </div>
+        <div className="text-[10px] text-muted-foreground mt-2">
+          ENTER TO SEND | {isLoading && 'CLICK STOP TO CANCEL'}
         </div>
       </div>
     </div>
