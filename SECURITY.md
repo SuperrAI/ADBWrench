@@ -13,7 +13,7 @@ We take the security of ADBWrench seriously. If you discover a security vulnerab
 ### How to Report
 
 1. **Do not** open a public GitHub issue for security vulnerabilities
-2. Email your findings to [security@superr.com](mailto:security@superr.com)
+2. Email your findings to [help@superr.ai](mailto:help@superr.ai)
 3. Include as much detail as possible:
    - Description of the vulnerability
    - Steps to reproduce
