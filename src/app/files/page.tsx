@@ -63,6 +63,7 @@ export default function FilesPage() {
 
   useEffect(() => {
     if (connectionState === 'connected') loadDirectory(currentPath);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only reload on connection change, not on every path change
   }, [connectionState, loadDirectory]);
 
   const navigateTo = (path: string) => loadDirectory(path);

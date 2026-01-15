@@ -102,6 +102,7 @@ export function InstallPrompt() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local static asset */}
             <img src="/icons/icon-192x192.png" alt="ADB Wrench" className="w-10 h-10 rounded-lg" />
             Install ADB Wrench
           </DialogTitle>

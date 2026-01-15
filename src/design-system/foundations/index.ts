@@ -26,7 +26,7 @@ export {
   ICONS_PATH,
 }
 
-export default {
+const foundationsExport = {
   colors,
   typography,
   textStyles,
@@ -40,4 +40,6 @@ export default {
   animations,
   iconSizes,
   ICONS_PATH,
-} 
+};
+
+export default foundationsExport; 

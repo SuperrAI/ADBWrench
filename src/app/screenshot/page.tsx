@@ -103,6 +103,7 @@ export default function ScreenshotPage() {
       setIsRecording(false);
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleStopRecording is defined after this callback
   }, [connectionState, recordingDuration, handleConnectionError]);
 
   const handleStopRecording = useCallback(async () => {
@@ -283,6 +284,7 @@ export default function ScreenshotPage() {
           )}>
             {selectedScreenshot ? (
               <div className="flex flex-col items-center gap-4 max-h-full">
+                {/* eslint-disable-next-line @next/next/no-img-element -- using base64 data URL */}
                 <img
                   src={selectedScreenshot.data}
                   alt="Screenshot preview"
@@ -341,6 +343,7 @@ export default function ScreenshotPage() {
                         : "border-border hover:border-muted-foreground"
                     )}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- using base64 data URL */}
                     <img
                       src={screenshot.data}
                       alt="Screenshot thumbnail"

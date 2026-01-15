@@ -89,6 +89,8 @@
     "@types/react-dom": "^18.2.0",
     "autoprefixer": "^10.4.23",
     "cypress": "latest",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
     "husky": "^9.1.7",
     "jest": "latest",
     "lint-staged": "latest",

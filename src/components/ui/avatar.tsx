@@ -43,6 +43,7 @@ export function BoringAvatar({
   }).toDataUri();
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- using generated data URI from dicebear
     <img
       src={avatarUrl}
       alt={`${name}'s avatar`}

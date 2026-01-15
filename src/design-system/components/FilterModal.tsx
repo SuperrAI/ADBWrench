@@ -40,8 +40,8 @@ export function FilterModal({
   className = '',
   searchPlaceholder = 'Search for a filter...',
 }: FilterModalProps) {
-  // Define your SVG icon mapping using the design system
-  const categoryIcons: Record<CategoryId, React.ReactNode> = {
+  // Define your SVG icon mapping using the design system - wrapped in useMemo to prevent recreation
+  const categoryIcons = useMemo<Record<CategoryId, React.ReactNode>>(() => ({
     tags: (
       <Image src={`${ICONS_PATH}/${AppIcons.FILTER_TAGS}.svg`} alt="Tags" width={20} height={20} />
     ),
@@ -77,10 +77,10 @@ export function FilterModal({
         height={20}
       />
     ),
-  };
+  }), []);
 
-  // Default categories if none provided
-  const defaultCategories: FilterCategory[] = [
+  // Default categories if none provided - wrapped in useMemo to prevent recreation
+  const defaultCategories = useMemo<FilterCategory[]>(() => [
     {
       id: 'tags',
       label: 'Tags',
@@ -166,7 +166,7 @@ export function FilterModal({
         { id: 'posted-on-3', label: 'Last month', checked: false },
       ],
     },
-  ];
+  ], []);
 
   // Process initialCategories to use our SVG icons
   const processedCategories = useMemo(() => {
@@ -177,7 +177,7 @@ export function FilterModal({
       // Override the icon with our SVG icon based on the category ID
       icon: categoryIcons[category.id] || category.icon,
     }));
-  }, [initialCategories]);
+  }, [initialCategories, categoryIcons, defaultCategories]);
 
   const [categories, setCategories] = useState<FilterCategory[]>(processedCategories);
   const [activeCategory, setActiveCategory] = useState<string>(initialActiveCategory);

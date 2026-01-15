@@ -169,4 +169,6 @@ export const textStyles = {
   },
 };
 
-export default { typography, textStyles };
+const typographyExport = { typography, textStyles };
+
+export default typographyExport;

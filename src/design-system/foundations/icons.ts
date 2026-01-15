@@ -56,8 +56,10 @@ export const AppIcons = {
   ASSIGNMENTS_EMPTY: 'assignments_empty',
 }
 
-export default {
+const iconsExport = {
   iconSizes,
   ICONS_PATH,
   AppIcons,
-} 
+};
+
+export default iconsExport; 

@@ -291,64 +291,14 @@ export const PreviewModal = React.forwardRef<HTMLDivElement, PreviewModalProps>(
     },
     ref
   ) => {
-    if (!isOpen) return null;
-
-    const handleDownload = async () => {
-      if (onDownload) {
-        onDownload();
-        return;
-      }
-
-      try {
-        let url = '';
-        if (fileType === 'pdf' && pdfUrl) {
-          url = pdfUrl;
-        } else if (fileType === 'image' && imageUrl) {
-          url = imageUrl;
-        } else if (fileType === 'video' && videoUrl) {
-          url = videoUrl;
-        }
-
-        if (!url) return;
-
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download =
-          fileName ||
-          `download.${fileType === 'pdf' ? 'pdf' : fileType === 'video' ? 'mp4' : 'jpg'}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(downloadUrl);
-      } catch (error) {
-        console.error('Error downloading file:', error);
-      }
-    };
-
-    // Calculate slider position based on zoom level
-    // Zoom range: 100% to 200%
-    const minZoom = 100;
-    const maxZoom = 200;
-    const sliderRange = 69; // Width of the slider track
-    const sliderPosition = ((zoomLevel - minZoom) / (maxZoom - minZoom)) * sliderRange;
-
-    // Calculate slider position based on volume (0 to 1)
-    const volumeSliderRange = 69; // Width of the slider track
-    const volumeSliderPosition = volume * volumeSliderRange;
-
+    // All hooks must be called before any early returns
     const [showOverlay, setShowOverlay] = useState(false);
     const overlayTimeoutRef = useRef<NodeJS.Timeout>();
-
-    // State to track if zoom slider is being dragged (for sync fix)
     const [isSliderDragging, setIsSliderDragging] = useState(false);
-
-    // Pan state for drag-to-pan when zoomed
     const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
     const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+    const imageContainerRef = useRef<HTMLDivElement>(null);
 
     // Reset pan position when zoom returns to 100%
     useEffect(() => {
@@ -362,28 +312,7 @@ export const PreviewModal = React.forwardRef<HTMLDivElement, PreviewModalProps>(
       setPanPosition({ x: 0, y: 0 });
     }, [isOpen, imageUrl]);
 
-    // Ref for image container
-    const imageContainerRef = useRef<HTMLDivElement>(null);
-
-    const handleVideoClick = () => {
-      if (onPlayPause) {
-        onPlayPause();
-      }
-
-      // Show the overlay immediately
-      setShowOverlay(true);
-
-      // Clear any existing timeout
-      if (overlayTimeoutRef.current) {
-        clearTimeout(overlayTimeoutRef.current);
-      }
-
-      // Set new timeout to hide overlay
-      overlayTimeoutRef.current = setTimeout(() => {
-        setShowOverlay(false);
-      }, 1000);
-    };
-
+    // Cleanup overlay timeout on unmount
     useEffect(() => {
       return () => {
         if (overlayTimeoutRef.current) {
@@ -434,6 +363,74 @@ export const PreviewModal = React.forwardRef<HTMLDivElement, PreviewModalProps>(
         document.removeEventListener('keydown', handleKeyDown);
       };
     }, [isOpen, fileType, zoomLevel, onZoomIn, onZoomOut, onClose]);
+
+    // Early return after all hooks
+    if (!isOpen) return null;
+
+    const handleDownload = async () => {
+      if (onDownload) {
+        onDownload();
+        return;
+      }
+
+      try {
+        let url = '';
+        if (fileType === 'pdf' && pdfUrl) {
+          url = pdfUrl;
+        } else if (fileType === 'image' && imageUrl) {
+          url = imageUrl;
+        } else if (fileType === 'video' && videoUrl) {
+          url = videoUrl;
+        }
+
+        if (!url) return;
+
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download =
+          fileName ||
+          `download.${fileType === 'pdf' ? 'pdf' : fileType === 'video' ? 'mp4' : 'jpg'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (error) {
+        console.error('Error downloading file:', error);
+      }
+    };
+
+    // Calculate slider position based on zoom level
+    // Zoom range: 100% to 200%
+    const minZoom = 100;
+    const maxZoom = 200;
+    const sliderRange = 69; // Width of the slider track
+    const sliderPosition = ((zoomLevel - minZoom) / (maxZoom - minZoom)) * sliderRange;
+
+    // Calculate slider position based on volume (0 to 1)
+    const volumeSliderRange = 69; // Width of the slider track
+    const volumeSliderPosition = volume * volumeSliderRange;
+
+    const handleVideoClick = () => {
+      if (onPlayPause) {
+        onPlayPause();
+      }
+
+      // Show the overlay immediately
+      setShowOverlay(true);
+
+      // Clear any existing timeout
+      if (overlayTimeoutRef.current) {
+        clearTimeout(overlayTimeoutRef.current);
+      }
+
+      // Set new timeout to hide overlay
+      overlayTimeoutRef.current = setTimeout(() => {
+        setShowOverlay(false);
+      }, 1000);
+    };
 
     const renderContent = () => {
       if (fileType === 'pdf' && pdfUrl) {

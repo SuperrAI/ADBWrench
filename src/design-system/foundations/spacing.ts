@@ -92,9 +92,11 @@ export const zIndices = {
   tooltip: '1700',
 }
 
-export default {
+const spacingExport = {
   spacing,
   radii,
   shadows,
   zIndices,
-} 
+};
+
+export default spacingExport; 

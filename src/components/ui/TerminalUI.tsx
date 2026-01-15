@@ -4,6 +4,15 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronDown } from 'lucide-react';
 
+// Spinner frames defined outside component to avoid recreation on each render
+const SPINNER_FRAMES = ['|', '/', '-', '\\'];
+const RADIAL_SPINNER_FRAMES = [
+  `  |  \n / \\ \n  O  \n \\ / \n  |  `,
+  ` /   \n|   |\n  O  \n|   |\n \\   `,
+  `     \n \\ / \n--O--\n / \\ \n     `,
+  `   \\ \n|   |\n  O  \n|   |\n   / `,
+];
+
 /**
  * Terminal-style Progress Bar using ASCII characters
  * Example: [||||||||||||........] 60%
@@ -56,18 +65,17 @@ interface SpinnerProps {
 
 export function TerminalSpinner({ label = "LOADING", className }: SpinnerProps) {
   const [frame, setFrame] = React.useState(0);
-  const frames = ['|', '/', '-', '\\'];
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setFrame(f => (f + 1) % frames.length);
+      setFrame(f => (f + 1) % SPINNER_FRAMES.length);
     }, 150);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <span className={cn("font-mono text-xs", className)}>
-      {label} {frames[frame]}
+      {label} {SPINNER_FRAMES[frame]}
     </span>
   );
 }
@@ -82,11 +90,10 @@ interface LoadingStateProps {
 
 export function TerminalLoadingState({ label = "LOADING", sublabel }: LoadingStateProps) {
   const [frame, setFrame] = React.useState(0);
-  const frames = ['|', '/', '-', '\\'];
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setFrame(f => (f + 1) % frames.length);
+      setFrame(f => (f + 1) % SPINNER_FRAMES.length);
     }, 150);
     return () => clearInterval(interval);
   }, []);
@@ -94,7 +101,7 @@ export function TerminalLoadingState({ label = "LOADING", sublabel }: LoadingSta
   return (
     <div className="h-full flex items-center justify-center p-8 font-mono">
       <div className="text-center">
-        <div className="text-2xl mb-4 text-orange-500">{frames[frame]}</div>
+        <div className="text-2xl mb-4 text-orange-500">{SPINNER_FRAMES[frame]}</div>
         <div className="text-sm mb-2">{label}</div>
         {sublabel && (
           <div className="text-xs text-muted-foreground">{sublabel}</div>
@@ -110,24 +117,16 @@ export function TerminalLoadingState({ label = "LOADING", sublabel }: LoadingSta
 export function TerminalRadialSpinner({ className }: { className?: string }) {
   const [frame, setFrame] = React.useState(0);
 
-  // ASCII art frames for radial spinner
-  const frames = [
-    `  |  \n / \\ \n  O  \n \\ / \n  |  `,
-    ` /   \n|   |\n  O  \n|   |\n \\   `,
-    `     \n \\ / \n--O--\n / \\ \n     `,
-    `   \\ \n|   |\n  O  \n|   |\n   / `,
-  ];
-
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setFrame(f => (f + 1) % frames.length);
+      setFrame(f => (f + 1) % RADIAL_SPINNER_FRAMES.length);
     }, 200);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <pre className={cn("font-mono text-xs leading-tight", className)}>
-      {frames[frame]}
+      {RADIAL_SPINNER_FRAMES[frame]}
     </pre>
   );
 }

@@ -37,6 +37,7 @@ export function Avatar({
       className={cn('rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center', className)}
       style={{ width: size, height: size }}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element -- dynamic avatar from local assets */}
       <img
         src={imageSrc}
         alt={`${name}'s avatar`}

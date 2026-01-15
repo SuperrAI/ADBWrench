@@ -65,7 +65,7 @@ export function EmojiPicker({ onSelect, className }: EmojiPickerProps): React.Re
       viewportRef.current.style.paddingRight = '8px'; // Increased padding to 8px
       viewportRef.current.style.scrollbarWidth = 'none'; // Hide Firefox scrollbar
     }
-  }, [viewportRef.current]);
+  }, []);
 
   // Recent emojis state - stored in localStorage
   const [recentEmojis, setRecentEmojis] = React.useState<string[]>(() => {

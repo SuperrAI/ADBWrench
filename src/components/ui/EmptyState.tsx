@@ -51,10 +51,11 @@ export function EmptyState({
 // Students icon component
 export function StudentsIcon() {
   return (
-    <img 
-      src="/assets/icons/nav_people.svg" 
-      alt="Students icon" 
-      width="32" 
+    // eslint-disable-next-line @next/next/no-img-element -- local SVG asset
+    <img
+      src="/assets/icons/nav_people.svg"
+      alt="Students icon"
+      width="32"
       height="32"
       className="text-neutral-300"
     />

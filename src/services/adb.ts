@@ -585,7 +585,6 @@ export async function pushFile(
 
     // The sync.write expects a specific structure - use write with filename and file
     // Cast to any to bypass strict type checking for library compatibility
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await sync.write({
       filename: remotePath,
       file: stream as any,

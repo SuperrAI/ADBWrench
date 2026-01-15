@@ -162,9 +162,11 @@ export const animations = {
   accordionUp: `${keyframes.accordionUp} ${durations.normal} ${easings.in}`,
 }
 
-export default {
+const animationsExport = {
   durations,
   easings,
   keyframes,
   animations,
-} 
+};
+
+export default animationsExport; 

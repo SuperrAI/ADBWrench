@@ -14,6 +14,85 @@ import { textStyles } from '@/design-system/foundations/typography';
 import { CoreColors, Neutral, Red } from '@/design-system/foundations/colors';
 import CheckCircleIcon from '@/components/icons/CheckCircleIcon';
 
+// Named icon components with display names for ESLint compliance
+const ImageIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+    style={{
+      width: '24px',
+      height: '24px',
+      flexShrink: 0,
+    }}
+  >
+    <path
+      d="M17.25 4.75H6.75C5.64543 4.75 4.75 5.64543 4.75 6.75V17.25C4.75 18.3546 5.64543 19.25 6.75 19.25H17.25C18.3546 19.25 19.25 18.3546 19.25 17.25V6.75C19.25 5.64543 18.3546 4.75 17.25 4.75Z"
+      stroke="#A3A3A3"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4.75 15.9995L7.49619 12.5061C8.2749 11.5156 9.76453 11.4832 10.5856 12.4389L13 15.2495"
+      stroke="#A3A3A3"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10.9141 12.8224C11.9512 11.5031 13.3964 9.63401 13.4904 9.5124L13.5004 9.49963C14.2805 8.51544 15.7653 8.48527 16.5846 9.43893L18.999 12.2495"
+      stroke="#A3A3A3"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+ImageIcon.displayName = 'ImageIcon';
+
+const DefaultFileIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    className={className}
+    style={{
+      width: '24px',
+      height: '24px',
+      flexShrink: 0,
+    }}
+  >
+    <path
+      d="M17.25 4.75H6.75C5.64543 4.75 4.75 5.64543 4.75 6.75V17.25C4.75 18.3546 5.64543 19.25 6.75 19.25H17.25C18.3546 19.25 19.25 18.3546 19.25 17.25V6.75C19.25 5.64543 18.3546 4.75 17.25 4.75Z"
+      stroke="#A3A3A3"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4.75 15.9995L7.49619 12.5061C8.2749 11.5156 9.76453 11.4832 10.5856 12.4389L13 15.2495"
+      stroke="#A3A3A3"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10.9141 12.8224C11.9512 11.5031 13.3964 9.63401 13.4904 9.5124L13.5004 9.49963C14.2805 8.51544 15.7653 8.48527 16.5846 9.43893L18.999 12.2495"
+      stroke="#A3A3A3"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+DefaultFileIcon.displayName = 'DefaultFileIcon';
+
 export type AttachmentFileType =
   | 'image'
   | 'document'
@@ -670,43 +749,7 @@ export const FileAttachment = React.forwardRef<HTMLDivElement, FileAttachmentPro
       // This will only be used for non-default states that somehow don't match the conditions above
       switch (fileType) {
         case 'image':
-          IconComponent = ({ className }: { className?: string }) => (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              className={className}
-              style={{
-                width: '24px',
-                height: '24px',
-                flexShrink: 0,
-              }}
-            >
-              <path
-                d="M17.25 4.75H6.75C5.64543 4.75 4.75 5.64543 4.75 6.75V17.25C4.75 18.3546 5.64543 19.25 6.75 19.25H17.25C18.3546 19.25 19.25 18.3546 19.25 17.25V6.75C19.25 5.64543 18.3546 4.75 17.25 4.75Z"
-                stroke="#A3A3A3"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M4.75 15.9995L7.49619 12.5061C8.2749 11.5156 9.76453 11.4832 10.5856 12.4389L13 15.2495"
-                stroke="#A3A3A3"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M10.9141 12.8224C11.9512 11.5031 13.3964 9.63401 13.4904 9.5124L13.5004 9.49963C14.2805 8.51544 15.7653 8.48527 16.5846 9.43893L18.999 12.2495"
-                stroke="#A3A3A3"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          );
+          IconComponent = ImageIcon;
           break;
         case 'document':
           IconComponent = FileTextIcon;
@@ -733,43 +776,7 @@ export const FileAttachment = React.forwardRef<HTMLDivElement, FileAttachmentPro
           IconComponent = FileCodeIcon;
           break;
         default:
-          IconComponent = ({ className }: { className?: string }) => (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              className={className}
-              style={{
-                width: '24px',
-                height: '24px',
-                flexShrink: 0,
-              }}
-            >
-              <path
-                d="M17.25 4.75H6.75C5.64543 4.75 4.75 5.64543 4.75 6.75V17.25C4.75 18.3546 5.64543 19.25 6.75 19.25H17.25C18.3546 19.25 19.25 18.3546 19.25 17.25V6.75C19.25 5.64543 18.3546 4.75 17.25 4.75Z"
-                stroke="#A3A3A3"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M4.75 15.9995L7.49619 12.5061C8.2749 11.5156 9.76453 11.4832 10.5856 12.4389L13 15.2495"
-                stroke="#A3A3A3"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M10.9141 12.8224C11.9512 11.5031 13.3964 9.63401 13.4904 9.5124L13.5004 9.49963C14.2805 8.51544 15.7653 8.48527 16.5846 9.43893L18.999 12.2495"
-                stroke="#A3A3A3"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          );
+          IconComponent = DefaultFileIcon;
       }
 
       return (
