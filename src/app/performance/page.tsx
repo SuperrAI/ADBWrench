@@ -105,7 +105,9 @@ export default function PerformancePage() {
   const parseCpuUsage = useCallback(async (): Promise<number> => {
     try {
       const topHeader = await shell('top -n 1 -b -m 1 | head -5');
-      const match = topHeader.match(/User\s+(\d+)%.*System\s+(\d+)%/i) || topHeader.match(/(\d+)%\s+user.*(\d+)%\s+sys/i);
+      const match = topHeader.match(/User\s+(\d+)%.*System\s+(\d+)%/i)
+        || topHeader.match(/(\d+)%\s*user.*(\d+)%\s*sys/i)  // "3% user" or "3%user"
+        || topHeader.match(/(\d+)%user.*(\d+)%sys/i);       // "3%user...17%sys"
       if (match) return Math.min(100, Number(match[1]) + Number(match[2]));
       return 0;
     } catch { return 0; }
@@ -131,7 +133,7 @@ export default function PerformancePage() {
       return {
         level: getVal(/level:\s*(\d+)/),
         temperature: getVal(/temperature:\s*(\d+)/) / 10,
-        voltage: getVal(/voltage:\s*(\d+)/) / 1000,
+        voltage: getVal(/^\s*voltage:\s*(\d+)/m) / 1000, // millivolts to volts
         status: output.match(/status:\s*(\d+)/)?.[1] === '2' ? 'CHARGING' : 'DISCHARGING'
       };
     } catch { return null; }
