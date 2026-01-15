@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LucideIcon, Usb, X, Sun, Moon } from 'lucide-react';
+import { LucideIcon, Usb, X, Sun, Moon, Sparkles } from 'lucide-react';
 import { useDevice } from '@/context/device-context';
 import { useTheme } from '@/context/theme-context';
 
@@ -55,6 +55,7 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
   const renderNavItem = (item: NavItem) => {
     const isActive = isItemActive(item);
     const IconComponent = item.lucideIcon;
+    const hasAI = item.title === 'Shell';
 
     return (
       <Link
@@ -74,6 +75,12 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
           />
         )}
         <span>{item.title}</span>
+        {hasAI && (
+          <span className="ml-auto flex items-center gap-0.5 text-[9px] px-1 bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            <Sparkles className="w-2.5 h-2.5" />
+            AI
+          </span>
+        )}
       </Link>
     );
   };
@@ -112,7 +119,7 @@ export function SideNav({ className, navItems = [] }: SideNavProps) {
           rel="noopener noreferrer"
           className="font-mono text-xs text-muted-foreground mt-1 block hover:text-orange-500 transition-colors"
         >
-          By Superr.ai
+          By Superr
         </a>
       </div>
 

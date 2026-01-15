@@ -275,7 +275,7 @@ export function TerminalGrid({ children, cols = 3, className }: GridProps) {
 
   return (
     <div className={cn(
-      "grid border border-border divide-x divide-y divide-border",
+      "grid gap-px bg-border border border-border",
       colClass[cols],
       className
     )}>
@@ -286,7 +286,7 @@ export function TerminalGrid({ children, cols = 3, className }: GridProps) {
 
 export function TerminalGridCell({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("p-4 font-mono", className)}>
+    <div className={cn("p-4 font-mono bg-background", className)}>
       {children}
     </div>
   );
@@ -365,7 +365,7 @@ export function TerminalSelect({
         className={cn(
           "flex items-center gap-1 px-2 py-1 border border-border transition-colors",
           disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted cursor-pointer",
-          isOpen && "border-orange-500"
+          isOpen && "border-foreground"
         )}
       >
         <span>{selectedOption?.label || value}</span>

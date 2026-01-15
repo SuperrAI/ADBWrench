@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useDevice } from '@/context/device-context';
 import { useRouter } from 'next/navigation';
 import { TerminalSpinner } from './TerminalUI';
@@ -14,13 +15,24 @@ export function ConnectionLostOverlay() {
   } = useDevice();
   const router = useRouter();
 
-  // Only show when connection is lost
-  if (connectionState !== 'connection-lost' && connectionState !== 'connecting') {
-    return null;
-  }
+  // Determine if overlay should be shown
+  const shouldShow =
+    (connectionState === 'connection-lost') ||
+    (connectionState === 'connecting' && lastConnectedDevice);
 
-  // Don't show if we're connecting but not from a connection-lost state
-  if (connectionState === 'connecting' && !lastConnectedDevice) {
+  // Lock background scroll when overlay is visible
+  useEffect(() => {
+    if (shouldShow) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [shouldShow]);
+
+  // Only show when connection is lost
+  if (!shouldShow) {
     return null;
   }
 
@@ -65,16 +77,7 @@ export function ConnectionLostOverlay() {
                   <span className="text-red-500 text-sm font-bold">[!] CONNECTION LOST</span>
                 </div>
 
-                {/* ASCII Art */}
-                <pre className="text-muted-foreground mb-4 text-xs text-center">
-{`    _____
-   |     |
-   | [X] |
-   |_____|
-     ~ ~`}
-                </pre>
-
-                <p className="text-xs text-muted-foreground text-center mb-4">
+                <p className="text-xs text-muted-foreground mb-4">
                   The USB connection to your device was interrupted.
                 </p>
 

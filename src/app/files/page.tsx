@@ -147,13 +147,6 @@ export default function FilesPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  ______
- |      |
- | [D]  |
- |______|
-   ||`}
-            </pre>
             <div className="text-sm mb-2">FILE BROWSER DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to browse files.
@@ -359,7 +352,7 @@ export default function FilesPage() {
                 value={newFolderName}
                 onChange={e => setNewFolderName(e.target.value)}
                 placeholder="Folder name..."
-                className="w-full bg-transparent border border-border px-2 py-1 mb-3 outline-none focus:border-orange-500 text-xs"
+                className="w-full bg-transparent border border-border px-2 py-1 mb-3 outline-none focus:border-foreground text-xs"
                 onKeyDown={e => e.key === 'Enter' && handleCreateDir()}
               />
               <div className="flex justify-end gap-2 text-xs">

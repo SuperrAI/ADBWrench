@@ -1,7 +1,7 @@
 {
   "name": "ADB Wrench",
   "short_name": "ADB Wrench",
-  "description": "Browser-based Android device debugging and management tool",
+  "description": "Browser-based Android debugging tool",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -9,6 +9,12 @@
   "orientation": "any",
   "scope": "/",
   "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",

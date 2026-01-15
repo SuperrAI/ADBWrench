@@ -5,6 +5,7 @@ import { PageLayout } from '@/design-system/patterns/PageLayout/PageLayout';
 import { useDevice } from '@/context/device-context';
 import { shell } from '@/services/adb';
 import { cn } from '@/lib/utils';
+import { TerminalGrid, TerminalGridCell } from '@/components/ui/TerminalUI';
 
 const KEY_EVENTS = [
   { label: 'HOME', keycode: 3 },
@@ -104,12 +105,6 @@ export default function ControlsPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  ______
- |  []  |
- | CTRL |
- |______|`}
-            </pre>
             <div className="text-sm mb-2">CONTROLS DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to use controls.
@@ -145,10 +140,9 @@ export default function ControlsPage() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
+          <TerminalGrid cols={3}>
             {/* Power Section */}
-            <div className="border border-border p-4">
+            <TerminalGridCell>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">POWER</div>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
@@ -179,10 +173,10 @@ export default function ControlsPage() {
                   </button>
                 </div>
               </div>
-            </div>
+            </TerminalGridCell>
 
             {/* Screen Section */}
-            <div className="border border-border p-4">
+            <TerminalGridCell>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">SCREEN</div>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
@@ -233,10 +227,10 @@ export default function ControlsPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </TerminalGridCell>
 
             {/* Connectivity Section */}
-            <div className="border border-border p-4">
+            <TerminalGridCell>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">CONNECTIVITY</div>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
@@ -276,10 +270,10 @@ export default function ControlsPage() {
                   </button>
                 </div>
               </div>
-            </div>
+            </TerminalGridCell>
 
             {/* Audio & Display Section */}
-            <div className="border border-border p-4">
+            <TerminalGridCell>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">AUDIO & DISPLAY</div>
               <div className="space-y-4 text-xs">
                 {/* Volume */}
@@ -360,10 +354,10 @@ export default function ControlsPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </TerminalGridCell>
 
             {/* Text Input Section */}
-            <div className="border border-border p-4 flex flex-col">
+            <TerminalGridCell className="flex flex-col">
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">TEXT INPUT</div>
               <div className="flex-1 flex flex-col text-xs">
                 <textarea
@@ -371,7 +365,7 @@ export default function ControlsPage() {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendText())}
                   placeholder="Type text to send to device..."
-                  className="terminal-input flex-1 min-h-[80px] w-full bg-transparent border border-border px-2 py-2 outline-none focus:border-orange-500 resize-none"
+                  className="terminal-input flex-1 min-h-[80px] w-full bg-transparent border border-border px-2 py-2 outline-none focus:border-foreground resize-none"
                 />
                 <button
                   onClick={sendText}
@@ -384,10 +378,10 @@ export default function ControlsPage() {
                   [ SEND ]
                 </button>
               </div>
-            </div>
+            </TerminalGridCell>
 
             {/* Hardware Keys Section */}
-            <div className="border border-border p-4">
+            <TerminalGridCell>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">HARDWARE KEYS</div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {KEY_EVENTS.map((key) => (
@@ -403,9 +397,8 @@ export default function ControlsPage() {
                   </button>
                 ))}
               </div>
-            </div>
-
-          </div>
+            </TerminalGridCell>
+          </TerminalGrid>
         </div>
 
         {/* Confirmation Modal */}

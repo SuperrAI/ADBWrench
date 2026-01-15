@@ -227,12 +227,6 @@ export default function BugreportPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  _______
- |  BUG  |
- | [ZIP] |
- |_______|`}
-            </pre>
             <div className="text-sm mb-2">BUGREPORT DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to generate bugreports.

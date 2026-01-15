@@ -165,12 +165,6 @@ export default function SettingsPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  _______
- | [=] |
- | SET |
- |_____|`}
-            </pre>
             <div className="text-sm mb-2">SETTINGS DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to modify settings.
@@ -220,21 +214,23 @@ export default function SettingsPage() {
                 return (
                   <div
                     key={qs.key}
-                    className="p-3 flex items-center justify-between gap-3 hover:bg-muted cursor-pointer"
-                    onClick={() => toggleQuickSetting(qs)}
+                    className="p-3 flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
                       <div className="text-xs">{qs.name}</div>
                       <div className="text-[10px] text-muted-foreground truncate">{qs.description}</div>
                     </div>
-                    <span className={cn(
-                      "px-2 py-1 border text-xs shrink-0",
-                      isEnabled
-                        ? "border-green-500 text-green-500"
-                        : "border-border text-muted-foreground"
-                    )}>
+                    <button
+                      onClick={() => toggleQuickSetting(qs)}
+                      className={cn(
+                        "w-14 py-1 border text-xs shrink-0 hover:bg-muted transition-colors text-center",
+                        isEnabled
+                          ? "border-green-500 text-green-500"
+                          : "border-border text-muted-foreground"
+                      )}
+                    >
                       {isEnabled ? '[ON]' : '[OFF]'}
-                    </span>
+                    </button>
                   </div>
                 );
               })}
@@ -264,7 +260,7 @@ export default function SettingsPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="SEARCH..."
-              className="bg-transparent border border-border px-3 py-1 text-xs outline-none focus:border-orange-500 w-full sm:w-48"
+              className="bg-transparent border border-border px-3 py-1 text-xs outline-none focus:border-foreground w-full sm:w-48"
             />
           </div>
 
@@ -349,7 +345,7 @@ export default function SettingsPage() {
                   <textarea
                     value={editValue}
                     onChange={e => setEditValue(e.target.value)}
-                    className="w-full h-20 bg-transparent border border-border p-2 outline-none focus:border-orange-500 resize-none"
+                    className="w-full h-20 bg-transparent border border-border p-2 outline-none focus:border-foreground resize-none"
                   />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">

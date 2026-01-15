@@ -183,13 +183,6 @@ export default function ScreenshotPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  ______
- |      |
- | [  ] |
- |______|
-   ||`}
-            </pre>
             <div className="text-sm mb-2">SCREENSHOT DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to capture screenshots.
@@ -224,15 +217,23 @@ export default function ScreenshotPage() {
 
               {!isRecording ? (
                 <>
-                  <select
-                    value={recordingDuration}
-                    onChange={(e) => setRecordingDuration(Number(e.target.value))}
-                    className="bg-transparent border border-border px-2 py-1 outline-none"
-                  >
+                  <div className="flex border border-border">
                     {DURATION_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <button
+                        key={opt.value}
+                        onClick={() => setRecordingDuration(opt.value)}
+                        className={cn(
+                          'px-2 py-1 text-xs transition-colors',
+                          recordingDuration === opt.value
+                            ? 'bg-foreground text-background'
+                            : 'hover:bg-muted',
+                          opt.value !== DURATION_OPTIONS[0].value && 'border-l border-border'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                   <button
                     onClick={handleStartRecording}
                     disabled={isCapturing}

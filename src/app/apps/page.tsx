@@ -93,13 +93,6 @@ export default function AppsPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  _____
- | APP |
- |_____|
- |[  ]|
- |____|`}
-            </pre>
             <div className="text-sm mb-2">APP MANAGER DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to manage applications.
@@ -147,7 +140,7 @@ export default function AppsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="package name..."
-                className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-40 focus:border-orange-500"
+                className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-40 focus:border-foreground"
               />
             </div>
 
@@ -255,7 +248,7 @@ export default function AppsPage() {
         </div>
 
         {/* Detail Panel */}
-        <div className="w-[320px] flex-shrink-0 flex flex-col overflow-hidden bg-background border-l border-border">
+        <div className="w-[320px] flex-shrink-0 flex flex-col overflow-hidden bg-background">
           {selectedPkgName ? (
             <>
               {/* Detail Header */}

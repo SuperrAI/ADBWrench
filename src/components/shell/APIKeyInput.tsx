@@ -31,7 +31,7 @@ export function APIKeyInput({
         className={cn(
           'w-full bg-transparent border px-3 py-2 pr-16 text-xs font-mono outline-none transition-colors',
           'placeholder:text-muted-foreground/50',
-          isValid === undefined && 'border-border focus:border-orange-500',
+          isValid === undefined && 'border-border focus:border-foreground',
           isValid === true && 'border-green-500',
           isValid === false && value && 'border-red-500'
         )}

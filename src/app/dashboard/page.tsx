@@ -121,13 +121,6 @@ export default function DashboardPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`    _____
-   |     |
-   | [X] |
-   |_____|
-     | |`}
-            </pre>
             <div className="text-sm mb-2">NO DEVICE CONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect an Android device via USB to continue.

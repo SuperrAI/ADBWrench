@@ -217,11 +217,6 @@ export default function ShellPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  _________
- |  $_ |
- |_________|`}
-            </pre>
             <div className="text-sm mb-2">SHELL DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to access the shell.
@@ -282,9 +277,9 @@ export default function ShellPage() {
                 className={cn(
                   'px-2 py-1 border flex items-center gap-1.5',
                   isPanelOpen
-                    ? 'border-blue-500 text-blue-500 bg-blue-500/10'
+                    ? 'border-orange-500 text-orange-500 bg-orange-500/10'
                     : 'border-border hover:bg-muted',
-                  isConfigured && !isPanelOpen && 'text-blue-500'
+                  isConfigured && !isPanelOpen && 'text-orange-500'
                 )}
                 title="AI Assistant"
               >

@@ -171,13 +171,6 @@ export default function LogcatPage() {
       <PageLayout>
         <div className="h-full flex items-center justify-center p-8 font-mono">
           <div className="text-center">
-            <pre className="text-muted-foreground mb-4 text-xs">
-{`  _____
- |     |
- | LOG |
- |_____|
-   |||`}
-            </pre>
             <div className="text-sm mb-2">LOGCAT DISCONNECTED</div>
             <div className="text-xs text-muted-foreground">
               Connect a device to stream logs.
@@ -255,7 +248,7 @@ export default function LogcatPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="filter..."
-              className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-32 focus:border-orange-500"
+              className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-32 focus:border-foreground"
             />
           </div>
 
@@ -267,7 +260,7 @@ export default function LogcatPage() {
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
               placeholder="tag..."
-              className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-24 focus:border-orange-500"
+              className="bg-transparent border-b border-border px-1 py-0.5 outline-none w-24 focus:border-foreground"
             />
           </div>
 
