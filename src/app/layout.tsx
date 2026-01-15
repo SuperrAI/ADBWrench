@@ -10,6 +10,7 @@ import { LayoutProvider } from '@/context/layout-context';
 import { KeyboardShortcutsProvider } from '@/components/ui/KeyboardShortcutsProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ConnectionLostOverlay } from '@/components/ui/ConnectionLostOverlay';
+import { Analytics } from '@vercel/analytics/next';
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
@@ -69,6 +70,7 @@ export default function RootLayout({
           </AIAssistantProvider>
           </DeviceProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
