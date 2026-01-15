@@ -21,7 +21,7 @@ let currentAdb: Adb | null = null;
 let currentDevice: AdbDaemonWebUsbDevice | null = null;
 
 // Storage key for last connected device
-const LAST_DEVICE_SERIAL_KEY = 'superrwrench-last-device';
+const LAST_DEVICE_SERIAL_KEY = 'adbwrench-last-device';
 
 /**
  * Check if WebUSB is supported in this browser

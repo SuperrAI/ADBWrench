@@ -16,7 +16,7 @@ const ThemeContext = createContext<ThemeContextType>({
   setTheme: () => {},
 });
 
-const STORAGE_KEY = 'superrwrench-theme';
+const STORAGE_KEY = 'adbwrench-theme';
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light';

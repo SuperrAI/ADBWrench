@@ -1,7 +1,27 @@
 {
-  "name": "superr-wrench",
+  "name": "adb-wrench",
   "version": "0.0.1",
-  "private": true,
+  "description": "Browser-based Android device debugging and management PWA built on WebUSB",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SuperrAI/ADBWrench.git"
+  },
+  "homepage": "https://github.com/SuperrAI/ADBWrench",
+  "bugs": {
+    "url": "https://github.com/SuperrAI/ADBWrench/issues"
+  },
+  "author": "Superr",
+  "keywords": [
+    "android",
+    "adb",
+    "webusb",
+    "debugging",
+    "pwa",
+    "device-management",
+    "mobile",
+    "developer-tools"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

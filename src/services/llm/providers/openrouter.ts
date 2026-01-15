@@ -24,7 +24,7 @@ export class OpenRouterProvider extends BaseLLMProvider {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
       'HTTP-Referer': window.location.origin,
-      'X-Title': 'SuperrWrench',
+      'X-Title': 'ADBWrench',
     };
   }
 

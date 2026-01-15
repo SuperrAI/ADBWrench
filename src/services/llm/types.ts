@@ -65,10 +65,10 @@ export interface StoredAPIKeys {
 
 // Storage keys
 export const STORAGE_KEYS = {
-  AI_CONFIG: 'superrwrench-ai-config',
-  AI_API_KEYS: 'superrwrench-ai-keys',
-  AI_CHAT_PREFIX: 'superrwrench-ai-chat-',
-  AI_PANEL_OPEN: 'superrwrench-ai-panel-open',
+  AI_CONFIG: 'adbwrench-ai-config',
+  AI_API_KEYS: 'adbwrench-ai-keys',
+  AI_CHAT_PREFIX: 'adbwrench-ai-chat-',
+  AI_PANEL_OPEN: 'adbwrench-ai-panel-open',
 } as const;
 
 export const MAX_MESSAGES_PER_SESSION = 100;

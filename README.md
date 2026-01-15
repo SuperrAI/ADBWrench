@@ -1,4 +1,4 @@
-# SuperrWrench
+# ADBWrench
 
 A browser-based Android device debugging and management PWA built on WebUSB. Enables IT service personnel to perform device diagnostics, maintenance, and debugging without installing desktop software.
 
@@ -136,10 +136,22 @@ logcat -c
 - iOS support
 - Firefox/Safari support (no WebUSB)
 
+## Acknowledgments
+
+This project is built on the excellent [ya-webadb](https://github.com/yume-chan/ya-webadb) library by [@yume-chan](https://github.com/yume-chan). The following packages make browser-based ADB communication possible:
+
+- **[@yume-chan/adb](https://www.npmjs.com/package/@yume-chan/adb)** - Core ADB protocol implementation
+- **[@yume-chan/adb-credential-web](https://www.npmjs.com/package/@yume-chan/adb-credential-web)** - RSA key management for web browsers
+- **[@yume-chan/adb-daemon-webusb](https://www.npmjs.com/package/@yume-chan/adb-daemon-webusb)** - WebUSB transport layer
+
+Without this library, ADBWrench would not exist. Thank you for making ADB accessible in the browser!
+
 ## License
 
-Proprietary - Superr
+This project is licensed under the [PolyForm Noncommercial License 1.0.0](./LICENSE). You are free to use, modify, and distribute this software for any noncommercial purpose. Commercial use is not permitted without separate authorization.
 
 ## Contributing
 
-See [CLAUDE.md](./CLAUDE.md) for development guidelines.
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+For development setup and code style guidelines, see [CLAUDE.md](./CLAUDE.md).

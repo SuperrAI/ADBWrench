@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SuperrWrench is a browser-based Android device debugging and management PWA built on WebUSB. It enables IT service personnel to perform device diagnostics, maintenance, and debugging without installing desktop software.
+ADBWrench is a browser-based Android device debugging and management PWA built on WebUSB. It enables IT service personnel to perform device diagnostics, maintenance, and debugging without installing desktop software.
 
 **Core Tech:** WebUSB API with ADB protocol implementation
 **Browser Support:** Chromium-based browsers (Chrome, Edge)
