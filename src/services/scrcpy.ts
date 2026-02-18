@@ -11,7 +11,10 @@ import { AdbScrcpyClient, AdbScrcpyOptionsLatest } from '@yume-chan/adb-scrcpy';
 import { ScrcpyVideoCodecId } from '@yume-chan/scrcpy';
 import type { ScrcpyVideoCodecId as ScrcpyVideoCodecIdType } from '@yume-chan/scrcpy';
 import type { ScrcpyVideoStreamMetadata } from '@yume-chan/scrcpy';
+import type { ScrcpyControlMessageWriter } from '@yume-chan/scrcpy';
 import { getCurrentAdb } from './adb';
+
+export type { ScrcpyControlMessageWriter } from '@yume-chan/scrcpy';
 
 // Path where the scrcpy-server binary is stored on the device
 const DEVICE_SERVER_PATH = '/data/local/tmp/scrcpy-server.jar';
@@ -45,6 +48,8 @@ export interface ScrcpySessionResult {
   videoStream: ScrcpyVideoStreamHandle;
   /** Video codec used by the server */
   codec: ScrcpyVideoCodecIdType;
+  /** Control message writer for injecting touch/key events (undefined if control disabled) */
+  controller: ScrcpyControlMessageWriter | undefined;
   /** Stop the scrcpy session and clean up resources */
   stop: () => Promise<void>;
 }
@@ -94,9 +99,10 @@ async function pushServerBinary(adb: Adb): Promise<void> {
 /**
  * Start the scrcpy server on the connected device and return the video stream.
  *
- * IMPORTANT: Audio and control channels are DISABLED to prevent
- * ADB stream multiplexing deadlock. The video stream MUST be consumed
- * continuously or the connection will stall.
+ * Audio is DISABLED to reduce bandwidth. Control is ENABLED to allow
+ * touch/stylus input injection. The video stream MUST be consumed
+ * continuously or the connection will stall. The control stream's
+ * read side is automatically drained by AdbScrcpyClient internally.
  */
 export async function startScrcpyServer(
   options?: ScrcpyStartOptions
@@ -115,12 +121,14 @@ export async function startScrcpyServer(
   // Push the server binary to the device
   await pushServerBinary(adb);
 
-  // Configure scrcpy options with video only (no audio, no control)
-  // to avoid multiplexing deadlock on single-stream ADB connections
+  // Configure scrcpy options with video + control (no audio).
+  // Control is enabled for touch/stylus input injection. The
+  // AdbScrcpyClient automatically drains the control read stream
+  // via its internal #parseDeviceMessages handler, so no deadlock.
   const scrcpyOptions = new AdbScrcpyOptionsLatest<true>({
     video: true as const,
     audio: false,
-    control: false,
+    control: true,
     // Video settings
     videoCodec: 'h264',
     maxSize: options?.maxSize ?? 1920,
@@ -217,6 +225,7 @@ export async function startScrcpyServer(
   return {
     videoStream,
     codec: videoStream.metadata.codec ?? ScrcpyVideoCodecId.H264,
+    controller: client.controller,
     stop,
   };
 }

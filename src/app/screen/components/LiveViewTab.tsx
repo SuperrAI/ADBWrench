@@ -10,7 +10,8 @@ import {
   isScrcpyActive,
 } from '@/services/scrcpy';
 import { getScreenResolution } from '@/services/adb';
-import type { ScrcpySessionResult } from '@/services/scrcpy';
+import type { ScrcpySessionResult, ScrcpyControlMessageWriter } from '@/services/scrcpy';
+import { useScreenInput } from './useScreenInput';
 
 type StreamStatus = 'idle' | 'connecting' | 'streaming' | 'error';
 
@@ -26,11 +27,13 @@ const QUALITY_PRESETS = [
  *
  * This component manages the full lifecycle of a scrcpy session:
  * 1. Push server binary to device
- * 2. Start scrcpy with H.264 video
+ * 2. Start scrcpy with H.264 video + control channel
  * 3. Decode with WebCodecs VideoDecoder
  * 4. Render to a WebGL canvas
+ * 5. Inject touch input via the control channel
  *
- * Audio and control are disabled to avoid ADB multiplexing deadlocks.
+ * Audio is disabled to reduce bandwidth. Control is enabled for
+ * interactive touch input.
  */
 export function LiveViewTab() {
   const { connectionState, handleConnectionError } = useDevice();
@@ -41,6 +44,8 @@ export function LiveViewTab() {
   const [deviceResolution, setDeviceResolution] = useState({ width: 0, height: 0 });
   const [error, setError] = useState<string | null>(null);
   const [qualityIndex, setQualityIndex] = useState(3); // Default to NATIVE
+  const [controlEnabled, setControlEnabled] = useState(false);
+  const [controllerHandle, setControllerHandle] = useState<ScrcpyControlMessageWriter | null>(null);
 
   // Refs for managing the streaming session
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -62,6 +67,14 @@ export function LiveViewTab() {
   const lastFrameCountRef = useRef(0);
   const isMountedRef = useRef(true);
   const pipePromiseRef = useRef<Promise<void> | null>(null);
+
+  // Wire up touch input injection via the scrcpy control channel
+  useScreenInput({
+    canvasContainerRef,
+    controller: controlEnabled ? controllerHandle : null,
+    resolution,
+    enabled: controlEnabled && status === 'streaming',
+  });
 
   /**
    * Check if the browser supports WebCodecs, required for hardware-accelerated
@@ -163,6 +176,8 @@ export function LiveViewTab() {
     if (isMountedRef.current) {
       setStatus('idle');
       setResolution({ width: 0, height: 0 });
+      setControllerHandle(null);
+      setControlEnabled(false);
     }
   }, [cleanup]);
 
@@ -219,6 +234,9 @@ export function LiveViewTab() {
       }
 
       sessionRef.current = session;
+
+      // Store controller reference for input injection
+      setControllerHandle(session.controller ?? null);
 
       // Create the WebGL renderer with capture enabled (for screenshot feature)
       const renderer = new WebGLVideoFrameRenderer(undefined, true);
@@ -448,6 +466,21 @@ export function LiveViewTab() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Input control toggle - only while streaming */}
+            {isStreaming && (
+              <button
+                onClick={() => setControlEnabled((prev) => !prev)}
+                className={cn(
+                  'px-2 py-1 border text-xs transition-colors',
+                  controlEnabled
+                    ? 'border-orange-500 text-orange-500'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
+                [ CONTROL: {controlEnabled ? 'ON' : 'OFF'} ]
+              </button>
+            )}
+
             {isStreaming && (
               <button
                 onClick={handleGrabScreenshot}
@@ -515,7 +548,10 @@ export function LiveViewTab() {
             {/* Canvas Container - the WebGL canvas gets appended here */}
             <div
               ref={canvasContainerRef}
-              className="w-full h-full"
+              className={cn(
+                'w-full h-full',
+                controlEnabled && isStreaming && 'cursor-pointer'
+              )}
             />
 
             {/* Connecting Overlay */}
@@ -558,7 +594,8 @@ export function LiveViewTab() {
               </p>
               <p className="text-[10px]">
                 NOTE: SOME APPS WITH FLAG_SECURE MAY SHOW A BLACK SCREEN.
-                AUDIO AND TOUCH INPUT ARE NOT SUPPORTED.
+                AUDIO IS NOT SUPPORTED. TOUCH INPUT CAN BE
+                ENABLED WHILE STREAMING.
               </p>
             </div>
           </div>
@@ -592,8 +629,13 @@ export function LiveViewTab() {
               </span>
             )}
           </div>
-          <div className="text-[10px] text-muted-foreground">
-            SCRCPY + WEBCODECS
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            {controlEnabled && (
+              <span className="text-orange-500">
+                INPUT: TOUCH
+              </span>
+            )}
+            <span>SCRCPY + WEBCODECS</span>
           </div>
         </div>
       )}
