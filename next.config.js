@@ -164,11 +164,16 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   transpilePackages: ['@uppy/core', '@uppy/dashboard', '@uppy/react', '@uppy/xhr-upload', '@uppy/status-bar'],
   images: {
-    domains: ['storage.googleapis.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+      },
+    ],
   },
+  turbopack: {},
   webpack: (config) => {
     // Support for PDF files
     config.module.rules.push({

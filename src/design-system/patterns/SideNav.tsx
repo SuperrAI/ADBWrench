@@ -31,7 +31,7 @@ const groupBySection = (items: NavItem[]) => {
   items.forEach(item => {
     if (['Dashboard'].includes(item.title)) {
       sections['MAIN'].push(item);
-    } else if (['Shell', 'Logcat', 'Screenshot', 'Apps', 'Files'].includes(item.title)) {
+    } else if (['Shell', 'Logcat', 'Screen', 'Apps', 'Files'].includes(item.title)) {
       sections['TOOLS'].push(item);
     } else {
       sections['SYSTEM'].push(item);

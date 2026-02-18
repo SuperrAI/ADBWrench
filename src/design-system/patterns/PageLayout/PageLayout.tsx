@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   Terminal,
   ScrollText,
-  Camera,
+  Monitor,
   Package,
   SlidersHorizontal,
   FolderOpen,
@@ -38,9 +38,9 @@ const defaultNavItems = [
     lucideIcon: ScrollText,
   },
   {
-    href: '/screenshot',
-    title: 'Screenshot',
-    lucideIcon: Camera,
+    href: '/screen',
+    title: 'Screen',
+    lucideIcon: Monitor,
   },
   {
     href: '/apps',
