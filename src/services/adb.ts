@@ -375,6 +375,29 @@ export function clearLastDevice(): void {
 }
 
 /**
+ * Get the device screen resolution via `wm size`
+ * Returns { width, height } of the physical display
+ */
+export async function getScreenResolution(): Promise<{ width: number; height: number }> {
+  if (!currentAdb) {
+    throw new Error('No device connected');
+  }
+
+  const output = await shell('wm size');
+  // Output format: "Physical size: 1080x2400" (may also have "Override size: ...")
+  // We want the physical size, or override if set
+  const lines = output.trim().split('\n');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const match = lines[i].match(/(\d+)x(\d+)/);
+    if (match) {
+      return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) };
+    }
+  }
+
+  return { width: 0, height: 0 };
+}
+
+/**
  * Capture a screenshot and return as Uint8Array (PNG data)
  */
 export async function captureScreenshot(): Promise<Uint8Array> {
