@@ -125,8 +125,15 @@ export default function Home() {
         </div>
 
         {/* Scroll hint */}
-        <div className="pb-10 flex justify-center text-muted-foreground/40">
-          <ChevronDown className="w-5 h-5 animate-bounce" />
+        <div className="pb-10 flex justify-center">
+          <div
+            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+            role="button"
+            aria-label="Scroll down"
+            className="group cursor-pointer p-1.5 border border-transparent hover:bg-orange-500 hover:border-orange-500 transition-colors"
+          >
+            <ChevronDown className="w-5 h-5 animate-bounce text-orange-500 group-hover:animate-none group-hover:text-white" />
+          </div>
         </div>
       </section>
 
@@ -259,7 +266,7 @@ export default function Home() {
               <span className="text-orange-500">&gt;_</span>
               <span>ADB Wrench</span>
               <span className="text-muted-foreground/40">By</span>
-              <a href="https://x.com/superr_ai" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
+              <a href="https://superr.ai" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
                 Superr
               </a>
             </div>
