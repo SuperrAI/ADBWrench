@@ -10,10 +10,10 @@ import { LiveViewTab } from './components/LiveViewTab';
 
 type ScreenTab = 'screenshot' | 'record' | 'live';
 
-const TABS: { id: ScreenTab; label: string; headerSuffix: string }[] = [
-  { id: 'screenshot', label: 'SCREENSHOT', headerSuffix: 'CAPTURE' },
-  { id: 'record', label: 'RECORD', headerSuffix: 'RECORD' },
-  { id: 'live', label: 'LIVE VIEW', headerSuffix: 'LIVE' },
+const TABS: { id: ScreenTab; label: string; headerSuffix: string; subtitle: string }[] = [
+  { id: 'screenshot', label: 'SCREENSHOT', headerSuffix: 'CAPTURE', subtitle: 'INSTANT CAPTURE | PNG FORMAT' },
+  { id: 'record', label: 'RECORD', headerSuffix: 'RECORD', subtitle: 'VIDEO UP TO 3MIN | MP4 FORMAT' },
+  { id: 'live', label: 'LIVE VIEW', headerSuffix: 'LIVE', subtitle: 'REAL-TIME MIRRORING | SCRCPY + WEBCODECS' },
 ];
 
 export default function ScreenPage() {
@@ -43,9 +43,14 @@ export default function ScreenPage() {
         {/* Header with Tab Navigation */}
         <div className="border-b border-border p-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h1 className="text-sm uppercase tracking-wider">
-              SCREEN // {activeTabConfig.headerSuffix}
-            </h1>
+            <div>
+              <h1 className="text-sm uppercase tracking-wider">
+                SCREEN // {activeTabConfig.headerSuffix}
+              </h1>
+              <div className="text-xs text-muted-foreground mt-1">
+                {activeTabConfig.subtitle}
+              </div>
+            </div>
             <div className="flex items-center gap-1 text-xs">
               {TABS.map((tab) => (
                 <button
