@@ -126,11 +126,6 @@ button[data-variant="elevated"]:hover:not(:disabled) {
   border-color: #E5E5E5 !important;
 }
 
-.dark button[data-variant="secondary"]:hover:not(:disabled) {
-  background-color: #C44600 !important;
-  border-color: #C44600 !important;
-}
-
 .dark button[data-variant="ghost"]:hover:not(:disabled) {
   background-color: #262626 !important;
   border-color: #404040 !important;
