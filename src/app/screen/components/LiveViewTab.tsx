@@ -542,7 +542,7 @@ export function LiveViewTab() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex items-center justify-center p-4 bg-black/20 overflow-hidden min-h-0">
+      <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 dark:bg-black/20 overflow-hidden min-h-0">
         {isStreaming || isConnecting ? (
           <div className="relative w-full h-full flex items-center justify-center">
             {/* Canvas Container - the WebGL canvas gets appended here */}
