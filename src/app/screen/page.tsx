@@ -10,7 +10,14 @@ import { LiveViewTab } from './components/LiveViewTab';
 
 type ScreenTab = 'screenshot' | 'record' | 'live';
 
-const TABS: { id: ScreenTab; label: string; headerSuffix: string; subtitle: string }[] = [
+type ScreenTabConfig = {
+  id: ScreenTab;
+  label: string;
+  headerSuffix: string;
+  subtitle: string;
+};
+
+const TABS: ScreenTabConfig[] = [
   { id: 'screenshot', label: 'SCREENSHOT', headerSuffix: 'CAPTURE', subtitle: 'INSTANT CAPTURE | PNG FORMAT' },
   { id: 'record', label: 'RECORD', headerSuffix: 'RECORD', subtitle: 'VIDEO UP TO 3MIN | MP4 FORMAT' },
   { id: 'live', label: 'LIVE VIEW', headerSuffix: 'LIVE', subtitle: 'REAL-TIME MIRRORING | SCRCPY + WEBCODECS' },
@@ -78,9 +85,7 @@ export default function ScreenPage() {
         {/* Footer */}
         <div className="border-t border-border px-3 flex-shrink-0 bg-background flex items-center min-h-[36px]">
           <span className="text-[10px] text-muted-foreground">
-            {activeTab === 'screenshot' && 'SCREENSHOT: INSTANT CAPTURE | PNG FORMAT'}
-            {activeTab === 'record' && 'RECORD: VIDEO UP TO 3MIN | MP4 FORMAT'}
-            {activeTab === 'live' && 'LIVE VIEW: REAL-TIME MIRRORING | SCRCPY + WEBCODECS'}
+            {activeTabConfig.label}: {activeTabConfig.subtitle}
           </span>
         </div>
       </div>
